@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 export type ThemeMode = "light" | "dark" | "system";
@@ -34,41 +35,37 @@ function readStoredMode(): ThemeMode {
   return v === "light" || v === "dark" || v === "system" ? v : "system";
 }
 
-function systemPref(): ResolvedTheme {
+function subscribeSystemPref(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  mq.addEventListener("change", callback);
+  return () => mq.removeEventListener("change", callback);
+}
+
+function getSystemPref(): ResolvedTheme {
   if (typeof window === "undefined") return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
     : "light";
 }
 
+// Server snapshot — must be stable; the inline init script + first effect
+// will reconcile to the real value before paint.
+const getServerSystemPref = (): ResolvedTheme => "light";
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Initialize from the value the inline script already applied so we
-  // stay in sync on first render.
   const [mode, setModeState] = useState<ThemeMode>(() => readStoredMode());
-  const [resolved, setResolved] = useState<ResolvedTheme>(() => {
-    if (typeof document === "undefined") return "light";
-    return document.documentElement.classList.contains("dark")
-      ? "dark"
-      : "light";
-  });
+  const systemResolved = useSyncExternalStore(
+    subscribeSystemPref,
+    getSystemPref,
+    getServerSystemPref,
+  );
+
+  const resolved: ResolvedTheme = mode === "system" ? systemResolved : mode;
 
   useEffect(() => {
-    const next: ResolvedTheme = mode === "system" ? systemPref() : mode;
-    setResolved(next);
-    applyTheme(next);
-  }, [mode]);
-
-  useEffect(() => {
-    if (mode !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => {
-      const next: ResolvedTheme = mq.matches ? "dark" : "light";
-      setResolved(next);
-      applyTheme(next);
-    };
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, [mode]);
+    applyTheme(resolved);
+  }, [resolved]);
 
   const setMode = useCallback((next: ThemeMode) => {
     setModeState(next);

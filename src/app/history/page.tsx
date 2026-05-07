@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import {
   compareToMarket,
-  fetchPriceObservationsForVariants,
+  fetchPriceObservationsForProducts,
   type Verdict,
 } from "@/lib/purchase/compareToMarket";
+import { Badge } from "@/components/ui/Badge";
 
 const myr = new Intl.NumberFormat("en-MY", {
   style: "currency",
@@ -53,51 +55,70 @@ export default async function HistoryPage() {
   if (error) {
     return (
       <div className="space-y-3">
-        <h1 className="text-xl font-semibold text-gray-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Purchase history
         </h1>
-        <p className="text-sm text-red-600">{error.message}</p>
+        <p className="text-sm text-destructive">{error.message}</p>
       </div>
     );
   }
 
   const purchases = rawPurchases ?? [];
-  const variantIds = [
-    ...new Set(purchases.map((p) => p.product_variant.id)),
+  const productIds = [
+    ...new Set(purchases.map((p) => p.product_variant.product.id)),
   ];
-  const observations = await fetchPriceObservationsForVariants(
+  const observations = await fetchPriceObservationsForProducts(
     supabase,
-    variantIds,
+    productIds,
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-gray-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Purchase history
         </h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Comparison checks against price entries within ±30 days of each
-          purchase.
+        <p className="text-sm text-muted-foreground mt-1">
+          Each purchase is compared against the current cheapest known price
+          across all stores.
         </p>
       </header>
 
       {purchases.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
-          Nothing logged yet. Add one from{" "}
-          <a className="text-amber-700 underline" href="/add/purchase">
-            Log a purchase
-          </a>
-          .
+        <div className="rounded-xl border border-dashed border-border bg-card/50 p-8 text-center">
+          <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5 text-muted-foreground"
+              aria-hidden="true"
+            >
+              <path d="M3 3h2l2.7 12.3a2 2 0 0 0 2 1.7h7.7a2 2 0 0 0 2-1.6L21 8H6" />
+              <circle cx="9" cy="20" r="1.5" />
+              <circle cx="18" cy="20" r="1.5" />
+            </svg>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Nothing logged yet. Add one from{" "}
+            <a className="text-primary hover:underline" href="/add/purchase">
+              Log a purchase
+            </a>
+            .
+          </p>
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {purchases.map((p) => {
+            const productObs = observations.filter(
+              (o) => o.product_id === p.product_variant.product.id,
+            );
             const verdict = compareToMarket({
-              variantId: p.product_variant.id,
               pricePaidMyr: Number(p.price_paid_myr),
-              purchasedAt: p.purchased_at,
-              observations,
+              observations: productObs,
             });
             return <PurchaseCard key={p.id} purchase={p} verdict={verdict} />;
           })}
@@ -126,58 +147,74 @@ function PurchaseCard({
   ].filter(Boolean);
 
   return (
-    <li className="rounded-lg border border-gray-200 bg-white p-3">
-      <div className="flex items-start justify-between gap-3">
+    <li className="relative rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-primary/30">
+      <Link
+        href={`/purchases/${purchase.id}`}
+        className="absolute inset-0 rounded-xl"
+        aria-label={`View purchase of ${purchase.product_variant.product.canonical_name}`}
+      />
+      <div className="relative flex items-start justify-between gap-3 pointer-events-none">
         <div className="min-w-0 flex-1">
-          <div className="font-medium text-gray-900 truncate">
+          <div className="font-medium text-foreground truncate">
             {purchase.product_variant.product.canonical_name}
           </div>
           {variantBits.length > 0 && (
-            <div className="text-xs text-gray-500 truncate">
+            <div className="text-xs text-muted-foreground truncate mt-0.5">
               {variantBits.join(" · ")}
             </div>
           )}
-          <div className="text-sm text-gray-700 mt-1 truncate">
+          <div className="text-sm text-foreground mt-1.5 truncate">
             {purchase.store.name}
-            {purchase.store.chain ? ` · ${purchase.store.chain}` : ""}
+            {purchase.store.chain ? (
+              <span className="text-muted-foreground">
+                {" · "}
+                {purchase.store.chain}
+              </span>
+            ) : null}
           </div>
-          <div className="text-xs text-gray-400">
+          <div className="text-xs text-muted-foreground mt-0.5">
             {new Date(purchase.purchased_at).toLocaleDateString()}
           </div>
         </div>
         <div className="text-right shrink-0">
-          <div className="text-lg font-semibold text-gray-900 tabular-nums">
+          <div className="text-lg font-semibold text-foreground tabular-nums">
             {myr.format(purchase.price_paid_myr)}
           </div>
           {purchase.qty !== 1 && (
-            <div className="text-xs text-gray-500">×{purchase.qty}</div>
+            <div className="text-xs text-muted-foreground">×{purchase.qty}</div>
           )}
         </div>
       </div>
-      <VerdictBadge verdict={verdict} />
+      <div className="relative mt-2.5 pointer-events-none">
+        <VerdictBadge verdict={verdict} />
+      </div>
     </li>
   );
 }
 
 function VerdictBadge({ verdict }: { verdict: Verdict }) {
   if (verdict.kind === "first_record") {
+    return <Badge tone="neutral">First price recorded</Badge>;
+  }
+  if (verdict.kind === "cheaper") {
     return (
-      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-        🆕 First price recorded
-      </div>
+      <Badge tone="primary">
+        {myr.format(verdict.deltaMyr)} cheaper than current best (
+        {myr.format(verdict.cheapestMyr)})
+      </Badge>
     );
   }
-  if (verdict.kind === "cheapest") {
+  if (verdict.kind === "match") {
     return (
-      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800">
-        ✅ Cheapest known
-      </div>
+      <Badge tone="primary">
+        Matches current best ({myr.format(verdict.cheapestMyr)})
+      </Badge>
     );
   }
   return (
-    <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
-      💰 {myr.format(verdict.deltaMyr)} more than cheapest (
+    <Badge tone="accent">
+      {myr.format(verdict.deltaMyr)} more than current best (
       {myr.format(verdict.cheapestMyr)})
-    </div>
+    </Badge>
   );
 }

@@ -1,7 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { Input } from "@/components/ui/Input";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { Field } from "@/components/ui/Field";
+import { cn } from "@/lib/utils/cn";
 import { searchCheapest, type SearchHit } from "@/lib/queries/search";
 import { PACK_TYPES, type PackType } from "@/lib/zod/schemas";
 import {
@@ -14,6 +19,12 @@ const myr = new Intl.NumberFormat("en-MY", {
   style: "currency",
   currency: "MYR",
   minimumFractionDigits: 2,
+});
+
+const dateFmt = new Intl.DateTimeFormat("en-MY", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
 });
 
 export type TravelConfig = {
@@ -63,7 +74,6 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
     });
 
     if (sort === "total" && travel) {
-      // Stores without coords have null totals — sort them last.
       return enriched.sort((a, b) => {
         const at = a.totalMyr ?? Number.POSITIVE_INFINITY;
         const bt = b.totalMyr ?? Number.POSITIVE_INFINITY;
@@ -75,114 +85,126 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
   }, [data, sort, travel]);
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <label className="block">
-          <span className="block text-sm font-medium text-gray-800">
-            What are you looking for?
-          </span>
-          <input
+    <div className="space-y-5">
+      <div className="space-y-3">
+        <div className="relative">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <Input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder='e.g. carrot, "broccoli", milk'
             autoFocus
-            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="h-11 pl-9 text-base"
           />
-        </label>
+        </div>
 
-        <details className="text-sm">
-          <summary className="cursor-pointer text-gray-600">
-            More filters
+        <details className="group rounded-lg border border-border bg-card">
+          <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-foreground select-none flex items-center justify-between">
+            <span>More filters</span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180"
+              aria-hidden="true"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
           </summary>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            <label className="block">
-              <span className="block text-xs text-gray-600">Pack type</span>
-              <select
-                value={packType}
-                onChange={(e) =>
-                  setPackType(e.target.value as PackType | "any")
-                }
-                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
-              >
-                <option value="any">Any</option>
-                {PACK_TYPES.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="block text-xs text-gray-600">Brand</span>
-              <input
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                placeholder="any"
-                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
-              />
-            </label>
-            <label className="block">
-              <span className="block text-xs text-gray-600">Origin</span>
-              <input
-                value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
-                placeholder="any"
-                className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
-              />
-            </label>
+          <div className="px-3 pb-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Field label="Pack type">
+              {(p) => (
+                <Dropdown
+                  {...p}
+                  value={packType}
+                  onChange={(v) => setPackType(v as PackType | "any")}
+                  options={[
+                    { value: "any", label: "Any" },
+                    ...PACK_TYPES.map((pt) => ({ value: pt, label: pt })),
+                  ]}
+                />
+              )}
+            </Field>
+            <Field label="Brand">
+              {(p) => (
+                <Input
+                  {...p}
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder="any"
+                />
+              )}
+            </Field>
+            <Field label="Origin">
+              {(p) => (
+                <Input
+                  {...p}
+                  value={origin}
+                  onChange={(e) => setOrigin(e.target.value)}
+                  placeholder="any"
+                />
+              )}
+            </Field>
           </div>
         </details>
 
         {travel && (
-          <div className="flex items-center gap-2 text-xs text-gray-600">
-            <span>Sort by</span>
-            <button
-              type="button"
-              onClick={() => setSort("total")}
-              className={`px-2 py-0.5 rounded-full border ${
-                sort === "total"
-                  ? "bg-green-600 text-white border-green-600"
-                  : "bg-white text-gray-700 border-gray-300"
-              }`}
-            >
-              Total (incl. travel)
-            </button>
-            <button
-              type="button"
-              onClick={() => setSort("price")}
-              className={`px-2 py-0.5 rounded-full border ${
-                sort === "price"
-                  ? "bg-green-600 text-white border-green-600"
-                  : "bg-white text-gray-700 border-gray-300"
-              }`}
-            >
-              Cheapest price
-            </button>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Sort by</span>
+            <div className="inline-flex rounded-full border border-border bg-card p-0.5">
+              <SortChip
+                active={sort === "total"}
+                onClick={() => setSort("total")}
+              >
+                Total (incl. travel)
+              </SortChip>
+              <SortChip
+                active={sort === "price"}
+                onClick={() => setSort("price")}
+              >
+                Cheapest price
+              </SortChip>
+            </div>
           </div>
         )}
       </div>
 
       {!enabled && (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           Type at least 2 characters to search.
         </p>
       )}
 
       {enabled && isFetching && (
-        <p className="text-sm text-gray-500">Searching…</p>
+        <p className="text-sm text-muted-foreground">Searching…</p>
       )}
 
       {error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {error instanceof Error ? error.message : "Something went wrong"}
         </p>
       )}
 
       {enabled && ranked.length === 0 && !isFetching && (
-        <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
           No prices yet. Add one from{" "}
-          <a className="text-green-700 underline" href="/add/price">
+          <a className="text-primary hover:underline" href="/add/price">
             Record a price
           </a>
           .
@@ -190,14 +212,15 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
       )}
 
       {enabled && ranked.length > 0 && (
-        <ul className="space-y-2">
-          {ranked.map(({ hit, estimate, totalMyr }) => (
+        <ul className="space-y-2.5">
+          {ranked.map(({ hit, estimate, totalMyr }, index) => (
             <ResultCard
               key={hit.entryId}
               hit={hit}
               estimate={estimate}
               totalMyr={totalMyr}
               showTotal={sort === "total" && travel !== null}
+              isCheapest={index === 0}
             />
           ))}
         </ul>
@@ -206,16 +229,43 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
   );
 }
 
+function SortChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+        active
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 function ResultCard({
   hit,
   estimate,
   totalMyr,
   showTotal,
+  isCheapest,
 }: {
   hit: SearchHit;
   estimate: TravelEstimate | null;
   totalMyr: number | null;
   showTotal: boolean;
+  isCheapest: boolean;
 }) {
   const variantBits = [
     hit.variant.brand,
@@ -225,56 +275,117 @@ function ResultCard({
   ].filter(Boolean);
 
   return (
-    <li className="rounded-lg border border-gray-200 bg-white p-3 flex items-start gap-3">
-      <div className="min-w-0 flex-1">
-        <div className="font-medium text-gray-900 truncate">
-          {hit.product.canonicalName}
+    <li
+      className={cn(
+        "relative rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow flex items-start gap-3 focus-within:ring-2 focus-within:ring-primary/30",
+        isCheapest ? "border-primary/40 ring-1 ring-primary/20" : "border-border",
+      )}
+    >
+      <Link
+        href={`/prices/${hit.entryId}`}
+        className="absolute inset-0 rounded-xl"
+        aria-label={`View price details for ${hit.product.canonicalName}`}
+      />
+      <div className="relative min-w-0 flex-1 pointer-events-none">
+        <div className="flex items-center gap-2">
+          <div className="font-medium text-foreground truncate">
+            {hit.product.canonicalName}
+          </div>
+          {isCheapest && (
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-primary-soft px-1.5 py-0.5 text-[10px] font-medium text-primary-soft-foreground shrink-0">
+              Best
+            </span>
+          )}
         </div>
         {variantBits.length > 0 && (
-          <div className="text-xs text-gray-500 truncate">
+          <div className="text-xs text-muted-foreground truncate mt-0.5">
             {variantBits.join(" · ")}
           </div>
         )}
-        <div className="text-sm text-gray-700 mt-1 truncate">
-          {hit.store.name}
-          {hit.store.chain ? ` · ${hit.store.chain}` : ""}
+        <div className="text-sm mt-1.5 truncate">
+          <a
+            href={googleMapsUrl(hit.store)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative text-foreground hover:underline inline-flex items-center gap-1 pointer-events-auto"
+            title="Open in Google Maps"
+          >
+            {hit.store.name}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-3 w-3 text-muted-foreground shrink-0"
+              aria-hidden
+            >
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </a>
+          {hit.store.chain ? (
+            <span className="text-muted-foreground">
+              {" · "}
+              {hit.store.chain}
+            </span>
+          ) : null}
         </div>
-        <div className="text-xs text-gray-400">
-          Observed {relativeDate(hit.observedAt)}
+        <div className="text-xs text-muted-foreground mt-0.5">
+          Observed {dateFmt.format(new Date(hit.observedAt))}
+          <span className="text-muted-foreground/60">
+            {" · "}
+            {relativeDate(hit.observedAt)}
+          </span>
         </div>
         {estimate ? (
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-muted-foreground mt-1">
             {estimate.oneWayKm.toFixed(1)} km away · +
             {myr.format(estimate.totalAddedMyr)} round-trip cost
           </div>
         ) : (
           <div className="text-xs mt-1">
-            <a
+            <Link
               href={`/stores/${hit.store.id}`}
-              className="text-amber-700 underline"
+              className="relative inline-flex items-center gap-1 text-accent hover:underline pointer-events-auto"
             >
-              📍 set store location
-            </a>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-3 w-3"
+                aria-hidden="true"
+              >
+                <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              Set store location
+            </Link>
           </div>
         )}
       </div>
-      <div className="text-right shrink-0">
+      <div className="relative text-right shrink-0 pointer-events-none">
         {showTotal && totalMyr !== null ? (
           <>
-            <div className="text-lg font-semibold text-gray-900 tabular-nums">
+            <div className="text-lg font-semibold text-foreground tabular-nums">
               {myr.format(totalMyr)}
             </div>
-            <div className="text-xs text-gray-500 tabular-nums">
+            <div className="text-xs text-muted-foreground tabular-nums">
               price {myr.format(hit.priceMyr)}
             </div>
           </>
         ) : (
           <>
-            <div className="text-lg font-semibold text-gray-900 tabular-nums">
+            <div className="text-lg font-semibold text-foreground tabular-nums">
               {myr.format(hit.priceMyr)}
             </div>
             {hit.unitPricePer100g !== null && (
-              <div className="text-xs text-gray-500 tabular-nums">
+              <div className="text-xs text-muted-foreground tabular-nums">
                 {myr.format(hit.unitPricePer100g)} / 100g
               </div>
             )}
@@ -283,6 +394,21 @@ function ResultCard({
       </div>
     </li>
   );
+}
+
+function googleMapsUrl(store: {
+  name: string;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+}): string {
+  const base = "https://www.google.com/maps/search/?api=1&query=";
+  const text = [store.name, store.address].filter(Boolean).join(", ");
+  if (text) return `${base}${encodeURIComponent(text)}`;
+  if (store.lat !== null && store.lng !== null) {
+    return `${base}${store.lat},${store.lng}`;
+  }
+  return "https://www.google.com/maps/";
 }
 
 function relativeDate(iso: string): string {

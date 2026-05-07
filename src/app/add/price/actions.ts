@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { findOrCreateVariant } from "@/lib/server/findOrCreateVariant";
+import { uploadEvidenceFiles } from "@/lib/storage/uploadEvidence";
 import {
   createPriceEntrySchema,
   createProductSchema,
   createStoreSchema,
+  createStoreWithLocationSchema,
 } from "@/lib/zod/schemas";
 
 async function requireUser() {
@@ -63,6 +65,61 @@ export async function createStoreAction(name: string): Promise<CreatedRef> {
   };
 }
 
+export async function createStoreWithLocationAction(input: {
+  name: string;
+  address?: string | null;
+  lat: number;
+  lng: number;
+  place_id?: string | null;
+}): Promise<CreatedRef> {
+  const { supabase } = await requireUser();
+  const parsed = createStoreWithLocationSchema.safeParse({
+    name: input.name,
+    address: input.address ?? "",
+    lat: input.lat,
+    lng: input.lng,
+    place_id: input.place_id ?? "",
+  });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid store");
+  }
+
+  if (parsed.data.place_id) {
+    const { data: existing, error: lookupErr } = await supabase
+      .from("stores")
+      .select("id, name, address")
+      .eq("place_id", parsed.data.place_id)
+      .maybeSingle();
+    if (lookupErr) throw new Error(lookupErr.message);
+    if (existing) {
+      return {
+        id: existing.id,
+        label: existing.name,
+        hint: existing.address ?? null,
+      };
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("stores")
+    .insert({
+      name: parsed.data.name,
+      address: parsed.data.address,
+      lat: parsed.data.lat,
+      lng: parsed.data.lng,
+      place_id: parsed.data.place_id,
+    })
+    .select("id, name, address")
+    .single();
+  if (error) throw new Error(error.message);
+  revalidatePath("/stores");
+  return {
+    id: data.id,
+    label: data.name,
+    hint: data.address ?? null,
+  };
+}
+
 export type PriceFormState = {
   ok: boolean;
   message?: string;
@@ -74,8 +131,9 @@ export async function submitPriceEntry(
   formData: FormData,
 ): Promise<PriceFormState> {
   let supabase;
+  let user;
   try {
-    ({ supabase } = await requireUser());
+    ({ supabase, user } = await requireUser());
   } catch {
     return { ok: false, message: "Please sign in again." };
   }
@@ -115,6 +173,14 @@ export async function submitPriceEntry(
     return { ok: false, message: variant.error };
   }
 
+  const evidenceFiles = formData
+    .getAll("evidence")
+    .filter((e): e is File => e instanceof File && e.size > 0);
+  const { paths: evidencePaths, errors: uploadErrors } =
+    evidenceFiles.length > 0
+      ? await uploadEvidenceFiles(supabase, user.id, evidenceFiles)
+      : { paths: [] as string[], errors: [] as string[] };
+
   const { error: insertErr } = await supabase.from("price_entries").insert({
     product_variant_id: variant.id,
     store_id: v.store_id,
@@ -123,6 +189,7 @@ export async function submitPriceEntry(
     observed_at: v.observed_at,
     source: "manual",
     notes: v.notes,
+    evidence_paths: evidencePaths,
   });
 
   if (insertErr) {
@@ -131,5 +198,9 @@ export async function submitPriceEntry(
 
   revalidatePath("/search");
   revalidatePath("/history");
-  return { ok: true, message: "Price recorded." };
+  const note =
+    uploadErrors.length > 0
+      ? ` (${uploadErrors.length} attachment${uploadErrors.length === 1 ? "" : "s"} failed)`
+      : "";
+  return { ok: true, message: `Price recorded.${note}` };
 }

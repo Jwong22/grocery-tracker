@@ -29,16 +29,18 @@ export default async function SearchPage() {
       : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-gray-900">Search cheapest</h1>
-        <p className="text-sm text-gray-600 mt-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          Search cheapest
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
           {travel ? (
             <>Ranked by raw price or by travel-adjusted total.</>
           ) : (
             <>
               Set your home location in{" "}
-              <a className="text-green-700 underline" href="/settings">
+              <a className="text-primary hover:underline" href="/settings">
                 Settings
               </a>{" "}
               to enable travel-cost ranking.

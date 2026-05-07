@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { findOrCreateVariant } from "@/lib/server/findOrCreateVariant";
+import { uploadEvidenceFiles } from "@/lib/storage/uploadEvidence";
 import { createPurchaseSchema } from "@/lib/zod/schemas";
 
 export type PurchaseFormState = {
@@ -56,6 +57,14 @@ export async function submitPurchase(
     return { ok: false, message: variant.error };
   }
 
+  const evidenceFiles = formData
+    .getAll("evidence")
+    .filter((e): e is File => e instanceof File && e.size > 0);
+  const { paths: evidencePaths, errors: uploadErrors } =
+    evidenceFiles.length > 0
+      ? await uploadEvidenceFiles(supabase, user.id, evidenceFiles)
+      : { paths: [] as string[], errors: [] as string[] };
+
   const { error: insertErr } = await supabase.from("purchases").insert({
     product_variant_id: variant.id,
     store_id: v.store_id,
@@ -64,9 +73,14 @@ export async function submitPurchase(
     pack_size_g_at_purchase: v.pack_size_g,
     purchased_at: v.purchased_at,
     notes: v.notes,
+    evidence_paths: evidencePaths,
   });
   if (insertErr) return { ok: false, message: insertErr.message };
 
   revalidatePath("/history");
-  return { ok: true, message: "Purchase logged." };
+  const note =
+    uploadErrors.length > 0
+      ? ` (${uploadErrors.length} attachment${uploadErrors.length === 1 ? "" : "s"} failed)`
+      : "";
+  return { ok: true, message: `Purchase logged.${note}` };
 }

@@ -1,7 +1,24 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import dynamic from "next/dynamic";
+import { useActionState, useCallback, useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Field } from "@/components/ui/Field";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Combobox, type ComboboxItem } from "@/components/Combobox";
+import { PlaceSearch } from "@/components/map/PlaceSearch";
+import { searchTopLevelStores } from "@/lib/queries/catalog";
 import { updateStore, type StoreFormState } from "./actions";
+
+const LeafletMap = dynamic(() => import("@/components/map/LeafletMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 w-full rounded-lg border border-border bg-muted/30 grid place-items-center text-xs text-muted-foreground">
+      Loading map…
+    </div>
+  ),
+});
 
 const initialState: StoreFormState = { ok: false };
 
@@ -11,19 +28,28 @@ type Props = {
     name: string;
     chain: string | null;
     address: string | null;
+    unit: string | null;
     lat: number | null;
     lng: number | null;
+    parent: { id: string; name: string; address: string | null } | null;
   };
 };
 
 export function StoreForm({ storeId, defaults }: Props) {
   const action = updateStore.bind(null, storeId);
   const [state, formAction, pending] = useActionState(action, initialState);
-  const [lat, setLat] = useState(
-    defaults.lat === null ? "" : String(defaults.lat),
-  );
-  const [lng, setLng] = useState(
-    defaults.lng === null ? "" : String(defaults.lng),
+
+  const [address, setAddress] = useState(defaults.address ?? "");
+  const [lat, setLat] = useState<number | null>(defaults.lat);
+  const [lng, setLng] = useState<number | null>(defaults.lng);
+  const [parent, setParent] = useState<ComboboxItem | null>(
+    defaults.parent
+      ? {
+          id: defaults.parent.id,
+          label: defaults.parent.name,
+          hint: defaults.parent.address,
+        }
+      : null,
   );
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
@@ -37,8 +63,8 @@ export function StoreForm({ storeId, defaults }: Props) {
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLat(pos.coords.latitude.toFixed(6));
-        setLng(pos.coords.longitude.toFixed(6));
+        setLat(round6(pos.coords.latitude));
+        setLng(round6(pos.coords.longitude));
         setLocating(false);
       },
       (err) => {
@@ -49,94 +75,196 @@ export function StoreForm({ storeId, defaults }: Props) {
     );
   };
 
+  const parentSearch = useCallback(
+    async (q: string): Promise<ComboboxItem[]> => {
+      const rows = await searchTopLevelStores(q);
+      return rows
+        .filter((r) => r.id !== storeId)
+        .map((r) => ({
+          id: r.id,
+          label: r.name,
+          hint: r.address ?? r.chain,
+        }));
+    },
+    [storeId],
+  );
+
+  const handleMapPick = useCallback((p: { lat: number; lng: number }) => {
+    setLat(round6(p.lat));
+    setLng(round6(p.lng));
+  }, []);
+
+  const handlePlacePick = useCallback(
+    (hit: { name: string; address: string; lat: number; lng: number }) => {
+      setLat(round6(hit.lat));
+      setLng(round6(hit.lng));
+      setAddress((hit.address || hit.name).slice(0, 200));
+    },
+    [],
+  );
+
   return (
     <form action={formAction} className="space-y-4">
-      <Field
-        label="Store name"
-        name="name"
-        defaultValue={defaults.name}
-        required
-        error={state.errors?.name?.[0]}
-      />
-      <Field
-        label="Chain"
-        name="chain"
-        defaultValue={defaults.chain ?? ""}
-        placeholder="e.g. NSK, AEON, Lotus's"
-        error={state.errors?.chain?.[0]}
-      />
-      <Field
-        label="Address"
-        name="address"
-        defaultValue={defaults.address ?? ""}
-        placeholder="optional"
-        error={state.errors?.address?.[0]}
-      />
-
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-gray-800">Location</legend>
-        <p className="text-xs text-gray-500">
-          Used for travel-cost ranking. Tap &ldquo;Use this store&rsquo;s
-          location&rdquo; while standing in the store, or paste lat/lng from
-          Google Maps.
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          <label className="block">
-            <span className="block text-xs text-gray-600">Latitude</span>
-            <input
-              name="lat"
-              type="number"
-              step="0.000001"
-              inputMode="decimal"
-              value={lat}
-              onChange={(e) => setLat(e.target.value)}
-              placeholder="3.1390"
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm"
+      <div className="space-y-4">
+        <Field label="Store name" required error={state.errors?.name?.[0]}>
+          {(p) => (
+            <Input
+              {...p}
+              name="name"
+              defaultValue={defaults.name}
+              required
+              invalid={Boolean(state.errors?.name?.[0])}
             />
-            {state.errors?.lat?.[0] && (
-              <span className="block text-xs text-red-600">
-                {state.errors.lat[0]}
-              </span>
-            )}
-          </label>
-          <label className="block">
-            <span className="block text-xs text-gray-600">Longitude</span>
-            <input
-              name="lng"
-              type="number"
-              step="0.000001"
-              inputMode="decimal"
-              value={lng}
-              onChange={(e) => setLng(e.target.value)}
-              placeholder="101.6869"
-              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm"
-            />
-            {state.errors?.lng?.[0] && (
-              <span className="block text-xs text-red-600">
-                {state.errors.lng[0]}
-              </span>
-            )}
-          </label>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={useMyLocation}
-            disabled={locating}
-            className="text-xs text-green-700 underline disabled:opacity-60"
-          >
-            {locating ? "Locating…" : "Use this store's location"}
-          </button>
-          {locateError && (
-            <span className="text-xs text-red-600">{locateError}</span>
           )}
-        </div>
-      </fieldset>
+        </Field>
+        <Field label="Chain" error={state.errors?.chain?.[0]}>
+          {(p) => (
+            <Input
+              {...p}
+              name="chain"
+              defaultValue={defaults.chain ?? ""}
+              placeholder="e.g. NSK, AEON, Lotus's"
+              invalid={Boolean(state.errors?.chain?.[0])}
+            />
+          )}
+        </Field>
+        <Field label="Address" error={state.errors?.address?.[0]}>
+          {(p) => (
+            <Input
+              {...p}
+              name="address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="optional — auto-fills from place search"
+              invalid={Boolean(state.errors?.address?.[0])}
+            />
+          )}
+        </Field>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Inside a mall?</CardTitle>
+          <CardDescription>
+            If this shop sits inside a mall (or other parent location), link to
+            it and add the unit/lot. Leave blank for a standalone store.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <input
+            type="hidden"
+            name="parent_store_id"
+            value={parent?.id ?? ""}
+          />
+          <Combobox
+            label="Parent location (mall)"
+            placeholder="Search the mall by name"
+            value={parent}
+            onChange={setParent}
+            search={parentSearch}
+          />
+          <Field label="Unit / Lot" error={state.errors?.unit?.[0]}>
+            {(p) => (
+              <Input
+                {...p}
+                name="unit"
+                defaultValue={defaults.unit ?? ""}
+                placeholder="e.g. G-019, Lot 1F-23"
+                invalid={Boolean(state.errors?.unit?.[0])}
+              />
+            )}
+          </Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Location</CardTitle>
+          <CardDescription>
+            Search for a place, drop a pin, or use your current location. Used
+            for travel-cost ranking on Search.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <PlaceSearch onPick={handlePlacePick} />
+
+          <LeafletMap lat={lat} lng={lng} onChange={handleMapPick} />
+
+          <input
+            type="hidden"
+            name="lat"
+            value={lat === null ? "" : String(lat)}
+          />
+          <input
+            type="hidden"
+            name="lng"
+            value={lng === null ? "" : String(lng)}
+          />
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-xs text-muted-foreground tabular-nums">
+              {lat !== null && lng !== null ? (
+                <>
+                  {lat.toFixed(6)}, {lng.toFixed(6)}
+                </>
+              ) : (
+                "No location set — tap the map or search above."
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {(lat !== null || lng !== null) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setLat(null);
+                    setLng(null);
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="soft"
+                size="sm"
+                onClick={useMyLocation}
+                disabled={locating}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-3.5 w-3.5"
+                  aria-hidden="true"
+                >
+                  <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                {locating ? "Locating…" : "Use my location"}
+              </Button>
+            </div>
+          </div>
+
+          {(state.errors?.lat?.[0] || state.errors?.lng?.[0]) && (
+            <p className="text-xs text-destructive">
+              {state.errors?.lat?.[0] || state.errors?.lng?.[0]}
+            </p>
+          )}
+          {locateError && (
+            <p className="text-xs text-destructive">{locateError}</p>
+          )}
+        </CardContent>
+      </Card>
 
       {state.message && (
         <p
           className={`text-sm ${
-            state.ok ? "text-green-700" : "text-red-600"
+            state.ok ? "text-primary-soft-foreground" : "text-destructive"
           }`}
           role={state.ok ? "status" : "alert"}
         >
@@ -144,35 +272,13 @@ export function StoreForm({ storeId, defaults }: Props) {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full h-12 rounded-full bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-60"
-      >
+      <Button type="submit" size="lg" block disabled={pending}>
         {pending ? "Saving…" : "Save store"}
-      </button>
+      </Button>
     </form>
   );
 }
 
-type FieldProps = React.InputHTMLAttributes<HTMLInputElement> & {
-  label: string;
-  error?: string | null;
-};
-
-function Field({ label, error, name, ...rest }: FieldProps) {
-  return (
-    <label className="block space-y-1">
-      <span className="block text-sm font-medium text-gray-800">
-        {label}
-        {rest.required && <span className="text-red-600 ml-0.5">*</span>}
-      </span>
-      <input
-        name={name}
-        {...rest}
-        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-      />
-      {error && <span className="block text-xs text-red-600">{error}</span>}
-    </label>
-  );
+function round6(n: number): number {
+  return Math.round(n * 1e6) / 1e6;
 }

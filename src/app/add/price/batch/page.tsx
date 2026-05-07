@@ -2,14 +2,15 @@ import { BatchClient } from "./BatchClient";
 
 export default function BatchImportPage() {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-gray-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Bulk import prices
         </h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Photo OCR, PDF, Excel, or Gemini Smart Parse — all feed into the same
-          editable review table before saving.
+        <p className="text-sm text-muted-foreground mt-1">
+          Photos run through Gemini, Llama Vision, and local OCR in parallel;
+          the merged best-match rows land in the editable review table. PDFs
+          and Excel feed into the same table.
         </p>
       </header>
       <BatchClient />

@@ -2,16 +2,27 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Grocery Tracker",
-    short_name: "Grocer",
+    name: "HooYe — Grocery Tracker",
+    short_name: "HooYe",
     description:
       "Track grocery prices and purchases across stores in Malaysia, with travel-cost-adjusted cheapest search.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "#16a34a",
+    theme_color: "#2f6f5a",
     icons: [
-      { src: "/icon", sizes: "256x256", type: "image/png" },
+      {
+        src: "/hooye-icon.png",
+        sizes: "952x876",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/hooye-icon.png",
+        sizes: "952x876",
+        type: "image/png",
+        purpose: "maskable",
+      },
     ],
   };
 }

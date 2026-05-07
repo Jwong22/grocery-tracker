@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { cn } from "@/lib/utils/cn";
+import { Label } from "./ui/Label";
 
 export type ComboboxItem = {
   id: string;
@@ -9,7 +11,7 @@ export type ComboboxItem = {
 };
 
 type Props = {
-  label: string;
+  label?: string;
   placeholder?: string;
   value: ComboboxItem | null;
   onChange: (item: ComboboxItem | null) => void;
@@ -17,6 +19,7 @@ type Props = {
   onCreate?: (name: string) => Promise<ComboboxItem>;
   required?: boolean;
   error?: string | null;
+  compact?: boolean;
 };
 
 export function Combobox({
@@ -28,6 +31,7 @@ export function Combobox({
   onCreate,
   required,
   error,
+  compact,
 }: Props) {
   const inputId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -99,27 +103,48 @@ export function Combobox({
   };
 
   return (
-    <div className="space-y-1" ref={containerRef}>
-      <label
-        htmlFor={inputId}
-        className="block text-sm font-medium text-gray-800"
-      >
-        {label}
-        {required && <span className="text-red-600 ml-0.5">*</span>}
-      </label>
+    <div className={cn(compact ? "space-y-1" : "space-y-1.5")} ref={containerRef}>
+      {label !== undefined && (
+        compact ? (
+          <label
+            htmlFor={inputId}
+            className="block text-xs text-muted-foreground select-none"
+          >
+            {label}
+            {required && (
+              <span className="ml-0.5 text-destructive" aria-hidden="true">
+                *
+              </span>
+            )}
+          </label>
+        ) : (
+          <Label htmlFor={inputId} required={required}>
+            {label}
+          </Label>
+        )
+      )}
 
       {value ? (
-        <div className="flex items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 py-2">
+        <div
+          className={cn(
+            "flex items-center justify-between gap-2 rounded-lg border border-border bg-card shadow-sm",
+            compact ? "h-9 px-2.5 py-1" : "px-3 py-2",
+          )}
+        >
           <div className="min-w-0">
-            <div className="truncate text-sm text-gray-900">{value.label}</div>
-            {value.hint && (
-              <div className="truncate text-xs text-gray-500">{value.hint}</div>
+            <div className="truncate text-sm text-foreground">
+              {value.label}
+            </div>
+            {value.hint && !compact && (
+              <div className="truncate text-xs text-muted-foreground">
+                {value.hint}
+              </div>
             )}
           </div>
           <button
             type="button"
             onClick={() => onChange(null)}
-            className="text-xs text-gray-500 hover:text-red-600 shrink-0"
+            className="text-xs text-muted-foreground hover:text-destructive shrink-0 px-1.5 py-1 rounded transition-colors"
           >
             Change
           </button>
@@ -133,15 +158,24 @@ export function Combobox({
             onFocus={() => setOpen(true)}
             placeholder={placeholder}
             autoComplete="off"
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            aria-invalid={Boolean(error) || undefined}
+            className={cn(
+              "flex w-full rounded-lg border bg-card text-sm text-foreground transition-colors",
+              compact ? "h-9 px-2.5 py-1" : "h-10 px-3 py-2",
+              "placeholder:text-muted-foreground/70",
+              "focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring",
+              error ? "border-destructive" : "border-border",
+            )}
           />
           {open && (
-            <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+            <div className="absolute z-30 mt-1 w-full rounded-lg border border-border bg-popover text-popover-foreground shadow-lg overflow-hidden">
               {loading && (
-                <div className="px-3 py-2 text-xs text-gray-500">Searching…</div>
+                <div className="px-3 py-2 text-xs text-muted-foreground">
+                  Searching…
+                </div>
               )}
               {!loading && items.length === 0 && !showCreate && (
-                <div className="px-3 py-2 text-xs text-gray-500">
+                <div className="px-3 py-2 text-xs text-muted-foreground">
                   {trimmed ? "No matches" : "Start typing to search"}
                 </div>
               )}
@@ -151,11 +185,13 @@ export function Combobox({
                     <button
                       type="button"
                       onClick={() => handlePick(item)}
-                      className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-gray-50"
+                      className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-muted transition-colors"
                     >
-                      <span className="text-sm text-gray-900">{item.label}</span>
+                      <span className="text-sm text-foreground">
+                        {item.label}
+                      </span>
                       {item.hint && (
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-muted-foreground">
                           {item.hint}
                         </span>
                       )}
@@ -164,12 +200,12 @@ export function Combobox({
                 ))}
               </ul>
               {showCreate && (
-                <div className="border-t border-gray-100 p-1">
+                <div className="border-t border-border p-1">
                   <button
                     type="button"
                     onClick={handleCreate}
                     disabled={creating}
-                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-green-700 hover:bg-green-50 disabled:opacity-60"
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-primary hover:bg-primary-soft disabled:opacity-60 transition-colors"
                   >
                     <span className="text-base leading-none">+</span>
                     <span className="truncate">
@@ -177,7 +213,7 @@ export function Combobox({
                     </span>
                   </button>
                   {createError && (
-                    <p className="px-3 pb-2 text-xs text-red-600">
+                    <p className="px-3 pb-2 text-xs text-destructive">
                       {createError}
                     </p>
                   )}
@@ -187,7 +223,7 @@ export function Combobox({
           )}
         </div>
       )}
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }

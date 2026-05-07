@@ -41,6 +41,38 @@ export const createStoreSchema = z.object({
 });
 export type CreateStoreInput = z.infer<typeof createStoreSchema>;
 
+const latLngTuple = z.object({
+  lat: z
+    .number()
+    .refine((n) => n >= -90 && n <= 90, "Latitude out of range"),
+  lng: z
+    .number()
+    .refine((n) => n >= -180 && n <= 180, "Longitude out of range"),
+});
+
+export const createStoreWithLocationSchema = z.object({
+  name: storeNameSchema,
+  address: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v ? v : null)),
+  lat: latLngTuple.shape.lat,
+  lng: latLngTuple.shape.lng,
+  place_id: z
+    .string()
+    .trim()
+    .max(255)
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v ? v : null)),
+});
+export type CreateStoreWithLocationInput = z.infer<
+  typeof createStoreWithLocationSchema
+>;
+
 export const updateStoreSchema = z.object({
   name: storeNameSchema,
   chain: z
@@ -54,6 +86,19 @@ export const updateStoreSchema = z.object({
     .string()
     .trim()
     .max(200)
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v ? v : null)),
+  unit: z
+    .string()
+    .trim()
+    .max(40)
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v ? v : null)),
+  parent_store_id: z
+    .string()
+    .uuid()
     .optional()
     .or(z.literal(""))
     .transform((v) => (v ? v : null)),
@@ -181,6 +226,7 @@ export const batchRowSchema = z.object({
     .transform((v) => (v ? new Date(v).toISOString() : new Date().toISOString())),
   notes: optionalTrimmed(500),
   source: z.enum(["manual", "image", "file", "smart"]).default("manual"),
+  evidencePaths: z.array(z.string().min(1).max(500)).max(20).default([]),
 });
 export type BatchRowInput = z.infer<typeof batchRowSchema>;
 

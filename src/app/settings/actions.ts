@@ -37,6 +37,13 @@ const settingsSchema = z.object({
     .optional()
     .or(z.literal(""))
     .transform((v) => (v ? v : null)),
+  groq_api_key: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v ? v : null)),
 });
 
 export type SettingsState = {
@@ -61,6 +68,7 @@ export async function saveSettings(
     petrol_cost_per_km_myr: formData.get("petrol_cost_per_km_myr"),
     time_value_per_hour_myr: formData.get("time_value_per_hour_myr"),
     gemini_api_key: formData.get("gemini_api_key"),
+    groq_api_key: formData.get("groq_api_key"),
   };
 
   const parsed = settingsSchema.safeParse(raw);
@@ -84,6 +92,7 @@ export async function saveSettings(
   if (v.time_value_per_hour_myr !== null)
     update.time_value_per_hour_myr = v.time_value_per_hour_myr;
   if (v.gemini_api_key !== null) update.gemini_api_key = v.gemini_api_key;
+  if (v.groq_api_key !== null) update.groq_api_key = v.groq_api_key;
 
   const { error } = await supabase
     .from("user_settings")

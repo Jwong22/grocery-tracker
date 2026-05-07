@@ -13,15 +13,25 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
       className={cn(
-        "inline-flex h-9 w-9 items-center justify-center rounded-lg",
+        "relative inline-flex h-9 w-9 items-center justify-center rounded-lg",
         "text-muted-foreground hover:text-foreground hover:bg-muted",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         "transition-colors",
         className,
       )}
     >
-      <SunIcon className={cn("h-4 w-4 transition-all", isDark ? "scale-0 -rotate-90" : "scale-100 rotate-0")} />
-      <MoonIcon className={cn("absolute h-4 w-4 transition-all", isDark ? "scale-100 rotate-0" : "scale-0 rotate-90")} />
+      <SunIcon
+        className={cn(
+          "absolute h-4 w-4 transition-all",
+          isDark ? "scale-0 -rotate-90 opacity-0" : "scale-100 rotate-0 opacity-100",
+        )}
+      />
+      <MoonIcon
+        className={cn(
+          "absolute h-4 w-4 transition-all",
+          isDark ? "scale-100 rotate-0 opacity-100" : "scale-0 rotate-90 opacity-0",
+        )}
+      />
     </button>
   );
 }

@@ -17,6 +17,7 @@ const COLUMN_ALIASES: Record<keyof BatchRow, string[]> = {
   observedAt: ["observedat", "date", "observed", "when"],
   notes: ["notes", "remark", "comment"],
   source: [],
+  evidencePaths: [],
 };
 
 function normalize(s: string): string {
@@ -63,13 +64,14 @@ export async function parseExcelFile(file: File): Promise<BatchRow[]> {
       observedAt: "",
       notes: "",
       source: "file",
+      evidencePaths: [],
     };
     for (const [key, field] of headerToField.entries()) {
       const raw = r[key];
       const v = raw === null || raw === undefined ? "" : String(raw).trim();
       if (field === "packType") {
         row.packType = (v.toLowerCase() as BatchRow["packType"]) || "loose";
-      } else if (field === "source") {
+      } else if (field === "source" || field === "evidencePaths") {
         // ignore
       } else {
         row[field] = v;

@@ -2,73 +2,25 @@
 
 import type { BatchRow } from "@/app/add/price/batch/BatchReviewTable";
 
-const ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
-
-const PROMPT = `You are a receipt-extraction assistant. From the attached receipt image, extract every grocery line item as a JSON array.
-
-Return STRICT JSON with this shape:
-[
-  {
-    "productName": "carrot",
-    "brand": null,
-    "originCountry": null,
-    "packType": "loose",
-    "packSizeG": 500,
-    "priceMyr": 4.50
-  }
-]
-
-Rules:
-- packType is one of: loose, packet, bottle, can, bag, box, tray, bunch (default "loose").
-- packSizeG: convert kg→1000g, ml→ml-as-grams approx, leave null if unknown.
-- priceMyr is the line total in Malaysian Ringgit, numeric.
-- Skip subtotal, tax, rounding, payment lines.
-- Output ONLY the JSON array. No prose, no markdown fences.`;
-
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result !== "string") return reject(new Error("read failed"));
-      const idx = result.indexOf(",");
-      resolve(idx >= 0 ? result.slice(idx + 1) : result);
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
 export async function smartParseImage(
   file: File,
-  apiKey: string,
   storeName: string,
 ): Promise<BatchRow[]> {
-  if (!apiKey) throw new Error("Gemini API key not set");
-  const b64 = await fileToBase64(file);
-  const body = {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: PROMPT },
-          { inline_data: { mime_type: file.type || "image/jpeg", data: b64 } },
-        ],
-      },
-    ],
-    generationConfig: { temperature: 0, responseMimeType: "application/json" },
-  };
+  const fd = new FormData();
+  fd.append("document", file, file.name);
 
-  const res = await fetch(`${ENDPOINT}?key=${encodeURIComponent(apiKey)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const res = await fetch("/api/smart-parse", { method: "POST", body: fd });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Gemini ${res.status}: ${text.slice(0, 200)}`);
+    let message = `Smart Parse ${res.status}`;
+    try {
+      const j = (await res.json()) as { error?: string };
+      if (j.error) message = j.error;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message);
   }
+
   const json = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
   };
@@ -81,7 +33,6 @@ export async function smartParseImage(
   try {
     parsed = JSON.parse(text);
   } catch {
-    // Sometimes Gemini wraps with prose despite instruction; try to find JSON block.
     const start = text.indexOf("[");
     const end = text.lastIndexOf("]");
     if (start === -1 || end === -1) throw new Error("Unparseable JSON");
@@ -121,6 +72,7 @@ export async function smartParseImage(
         observedAt: "",
         notes: "",
         source: "smart",
+        evidencePaths: [],
       };
     })
     .filter((r): r is BatchRow => r !== null);

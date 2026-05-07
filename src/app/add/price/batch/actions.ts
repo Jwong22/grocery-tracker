@@ -80,6 +80,7 @@ export async function submitBatch(
       observed_at: row.observedAt,
       source: row.source,
       notes: row.notes,
+      evidence_paths: row.evidencePaths,
     });
     if (error) {
       failed.push({ index: i, message: error.message });

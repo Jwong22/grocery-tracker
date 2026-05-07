@@ -1,6 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "./SignOutButton";
+import { ThemeToggle } from "./ThemeToggle";
+import { NavLinks } from "./NavLinks";
+import { NavMenu } from "./NavMenu";
 
 export async function TopNav() {
   const supabase = await createClient();
@@ -15,29 +19,41 @@ export async function TopNav() {
     { href: "/search", label: "Search" },
     { href: "/add/price", label: "+ Price" },
     { href: "/add/purchase", label: "+ Purchase" },
+    { href: "/stores", label: "Stores" },
     { href: "/history", label: "History" },
     { href: "/settings", label: "Settings" },
   ];
 
   return (
-    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-200">
-      <nav className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3 overflow-x-auto">
-        <Link href="/" className="font-semibold text-green-700 shrink-0">
-          🛒 Grocer
+    <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/70">
+      <nav className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
+        <Link
+          href="/"
+          aria-label="HooYe home"
+          className="flex items-center gap-2 shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Image
+            src="/hooye-icon.png"
+            alt=""
+            width={952}
+            height={876}
+            priority
+            className="h-8 w-8 rounded-lg shadow-sm ring-1 ring-border"
+          />
+          <span className="text-lg font-semibold tracking-tight text-foreground">
+            HooYe
+          </span>
         </Link>
-        <ul className="flex items-center gap-3 text-sm flex-1 min-w-0">
-          {links.map((l) => (
-            <li key={l.href}>
-              <Link
-                href={l.href}
-                className="text-gray-700 hover:text-green-700 whitespace-nowrap"
-              >
-                {l.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <SignOutButton />
+        <div className="hidden lg:flex flex-1 min-w-0 items-center gap-3">
+          <NavLinks links={links} />
+        </div>
+        <div className="ml-auto flex items-center gap-1 shrink-0">
+          <div className="hidden sm:block lg:hidden">
+            <NavMenu links={links} />
+          </div>
+          <ThemeToggle />
+          <SignOutButton />
+        </div>
       </nav>
     </header>
   );

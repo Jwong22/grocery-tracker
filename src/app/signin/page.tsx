@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -30,7 +31,7 @@ function SignInButton() {
       <button
         onClick={onClick}
         disabled={loading}
-        className="inline-flex items-center justify-center gap-3 h-12 px-6 rounded-full bg-white border border-gray-300 text-gray-800 font-medium shadow-sm hover:bg-gray-50 disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-3 h-12 px-6 rounded-xl bg-card border border-border text-foreground font-medium shadow-sm hover:bg-muted disabled:opacity-60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
           <path
@@ -53,7 +54,7 @@ function SignInButton() {
         {loading ? "Redirecting…" : "Continue with Google"}
       </button>
       {error && (
-        <p className="text-sm text-red-600 mt-3" role="alert">
+        <p className="text-sm text-destructive mt-3" role="alert">
           {error}
         </p>
       )}
@@ -64,11 +65,18 @@ function SignInButton() {
 export default function SignInPage() {
   return (
     <div className="flex flex-col items-center text-center py-16">
-      <div className="w-16 h-16 rounded-2xl bg-green-600 text-white flex items-center justify-center text-3xl mb-6">
-        🛒
-      </div>
-      <h1 className="text-2xl font-semibold text-gray-900">Grocery Tracker</h1>
-      <p className="text-sm text-gray-600 mt-2 max-w-sm">
+      <Image
+        src="/hooye-icon.png"
+        alt="HooYe"
+        width={952}
+        height={876}
+        priority
+        className="w-20 h-20 rounded-2xl shadow-lg mb-6"
+      />
+      <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+        HooYe
+      </h1>
+      <p className="text-sm text-muted-foreground mt-3 max-w-sm">
         Sign in to record prices, search the cheapest store nearby, and track
         your purchases.
       </p>

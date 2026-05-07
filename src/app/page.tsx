@@ -1,32 +1,105 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils/cn";
 
-const tiles = [
+type Tile = {
+  href: string;
+  title: string;
+  desc: string;
+  tone: "primary" | "info" | "accent" | "violet";
+  icon: React.ReactNode;
+};
+
+const tiles: Tile[] = [
   {
     href: "/search",
     title: "Search cheapest",
     desc: "Find the lowest price near you, travel-cost adjusted.",
-    accent: "bg-green-50 text-green-800 border-green-200",
+    tone: "primary",
+    icon: (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-5 w-5"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+      </svg>
+    ),
   },
   {
     href: "/add/price",
     title: "Record a price",
     desc: "Manual, photo, PDF, or Excel — multiple at once.",
-    accent: "bg-blue-50 text-blue-800 border-blue-200",
+    tone: "info",
+    icon: (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-5 w-5"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    ),
   },
   {
     href: "/add/purchase",
     title: "Log a purchase",
     desc: "We'll flag whether you got the cheapest deal.",
-    accent: "bg-amber-50 text-amber-800 border-amber-200",
+    tone: "accent",
+    icon: (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-5 w-5"
+      >
+        <path d="M3 3h2l2.7 12.3a2 2 0 0 0 2 1.7h7.7a2 2 0 0 0 2-1.6L21 8H6" />
+        <circle cx="9" cy="20" r="1.5" />
+        <circle cx="18" cy="20" r="1.5" />
+      </svg>
+    ),
   },
   {
     href: "/history",
     title: "Purchase history",
     desc: "Review past buys and how they compared.",
-    accent: "bg-purple-50 text-purple-800 border-purple-200",
+    tone: "violet",
+    icon: (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-5 w-5"
+      >
+        <path d="M3 12a9 9 0 1 0 3-6.7" />
+        <path d="M3 4v5h5" />
+        <path d="M12 7v5l3 2" />
+      </svg>
+    ),
   },
 ];
+
+const toneStyles: Record<Tile["tone"], string> = {
+  primary: "bg-primary-soft text-primary-soft-foreground",
+  info: "bg-info-soft text-info-soft-foreground",
+  accent: "bg-accent-soft text-accent-soft-foreground",
+  violet: "bg-violet-soft text-violet-soft-foreground",
+};
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -41,11 +114,11 @@ export default async function HomePage() {
     "there";
 
   return (
-    <div className="space-y-6">
-      <header>
-        <p className="text-sm text-gray-500">Welcome back,</p>
-        <h1 className="text-2xl font-semibold text-gray-900">
-          {greetingName} 👋
+    <div className="space-y-8">
+      <header className="space-y-1">
+        <p className="text-sm text-muted-foreground">Welcome back,</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          {greetingName} <span aria-hidden="true">👋</span>
         </h1>
       </header>
 
@@ -54,16 +127,42 @@ export default async function HomePage() {
           <li key={t.href}>
             <Link
               href={t.href}
-              className={`block rounded-xl border p-4 hover:shadow-sm transition ${t.accent}`}
+              className="group block rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <div className="font-medium">{t.title}</div>
-              <div className="text-sm opacity-80 mt-1">{t.desc}</div>
+              <div className="flex items-start gap-3">
+                <span
+                  className={cn(
+                    "inline-flex h-10 w-10 items-center justify-center rounded-lg shrink-0",
+                    toneStyles[t.tone],
+                  )}
+                >
+                  {t.icon}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-foreground">{t.title}</div>
+                  <div className="text-sm text-muted-foreground mt-0.5">
+                    {t.desc}
+                  </div>
+                </div>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </div>
             </Link>
           </li>
         ))}
       </ul>
 
-      <p className="text-xs text-gray-400 pt-4">
+      <p className="text-xs text-muted-foreground">
         Tip: install this app from your browser&rsquo;s share menu to get a
         home-screen icon.
       </p>
