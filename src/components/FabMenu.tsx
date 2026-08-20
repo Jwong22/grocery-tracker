@@ -9,18 +9,6 @@ export function FabMenu() {
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Close menu on outside click
-  useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
-
   // Close menu on Escape
   useEffect(() => {
     if (!open) return;
