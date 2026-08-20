@@ -22,6 +22,7 @@ import { parsePriceLines } from "@/lib/ocr/pricePattern";
 import { smartParseImage } from "@/lib/ocr/smartParse";
 import { groqParseImage } from "@/lib/ocr/groqParse";
 import { mergeProviderRows } from "@/lib/ocr/mergeRows";
+import { compressImage } from "@/lib/utils/compressImage";
 import {
   BatchReviewTable,
   emptyRow,
@@ -110,10 +111,13 @@ export function BatchClient() {
     try {
       let totalParsed = 0;
       for (let i = 0; i < list.length; i++) {
-        const f = list[i];
+        const raw = list[i];
         setProgress(
-          `Analysing ${f.name} with Gemini + Llama + OCR (${i + 1}/${list.length})…`,
+          `Compressing & analysing ${raw.name} (${i + 1}/${list.length})…`,
         );
+
+        // Compress image to max 1600px — drastically reduces upload/API time
+        const f = await compressImage(raw);
 
         const [tessRes, gemRes, groqRes, uploadRes] = await Promise.allSettled([
           (async () => {

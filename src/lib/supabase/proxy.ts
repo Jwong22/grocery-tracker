@@ -27,21 +27,24 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
+  // Use getSession() for the proxy — faster than getUser() since it reads
+  // from the cookie without a network roundtrip to Supabase Auth.
+  // Server components that need verified identity should still call getUser().
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
 
-  if (!user && !isPublic) {
+  if (!session && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/signin";
     url.searchParams.set("next", path);
     return NextResponse.redirect(url);
   }
 
-  if (user && path === "/signin") {
+  if (session && path === "/signin") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

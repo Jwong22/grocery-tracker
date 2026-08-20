@@ -165,7 +165,7 @@ export function BatchReviewTable({
     <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex items-end gap-2">
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <Combobox
               label="Default store (applied to blank rows)"
               placeholder="e.g. NSK Pandan Indah"
@@ -179,6 +179,7 @@ export function BatchReviewTable({
             type="button"
             variant="ghost"
             size="sm"
+            className="shrink-0 whitespace-nowrap text-xs"
             onClick={applyDefaultStore}
           >
             Apply to all
@@ -188,7 +189,7 @@ export function BatchReviewTable({
           <button
             type="button"
             onClick={() => setMapOpen("default")}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-muted transition-colors"
+            className="shrink-0 inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-muted transition-colors"
           >
             <MapIcon /> Pick on map
           </button>
@@ -214,14 +215,14 @@ export function BatchReviewTable({
             key={i}
             className="rounded-xl border border-border bg-card p-4 space-y-3 shadow-sm"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Row {i + 1}</span>
-                <Badge tone="neutral" className="font-normal">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0 overflow-hidden">
+                <span className="shrink-0">Row {i + 1}</span>
+                <Badge tone="neutral" className="font-normal shrink-0">
                   {row.source}
                 </Badge>
                 {row.evidencePaths.length > 0 && (
-                  <Badge tone="neutral" className="font-normal inline-flex items-center gap-1">
+                  <Badge tone="neutral" className="font-normal inline-flex items-center gap-1 shrink-0">
                     <PaperclipIcon /> {row.evidencePaths.length}
                   </Badge>
                 )}
@@ -229,7 +230,7 @@ export function BatchReviewTable({
               <button
                 type="button"
                 onClick={() => removeRow(i)}
-                className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                className="shrink-0 text-xs text-muted-foreground hover:text-destructive transition-colors"
               >
                 Remove
               </button>
@@ -430,12 +431,12 @@ function RowStoreField({
 }: RowStoreFieldProps) {
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-1">
         <span className="block text-xs text-muted-foreground">Store</span>
         <button
           type="button"
           onClick={onPickOnMap}
-          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          className="shrink-0 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Pick store on map"
         >
           <MapIcon /> Map
@@ -494,14 +495,14 @@ function RowDateField({ value, onChange }: RowDateFieldProps) {
 
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <span className="block text-xs text-muted-foreground">
-          Observed date
+      <div className="flex items-center justify-between gap-1">
+        <span className="block text-xs text-muted-foreground truncate">
+          Observed
         </span>
         <button
           type="button"
           onClick={() => onChange(todayLocalDate())}
-          className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          className="shrink-0 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
         >
           Today
         </button>

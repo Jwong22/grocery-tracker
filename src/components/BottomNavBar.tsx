@@ -57,16 +57,16 @@ export function BottomNavBar() {
                 href={t.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+                  "flex w-full flex-col items-center justify-center gap-0.5 text-[10px] font-medium",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-                  "transition-colors",
+                  "transition-colors overflow-hidden",
                   active
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Icon className="h-[22px] w-[22px]" aria-hidden="true" />
-                <span className="leading-none">{t.label}</span>
+                <span className="leading-none truncate max-w-full">{t.label}</span>
               </Link>
             </li>
           );

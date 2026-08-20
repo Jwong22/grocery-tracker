@@ -48,10 +48,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-hidden">
         <Providers>
           <TopNav />
-          <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 sm:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-8">
+          <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 sm:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-8 overflow-x-hidden">
             {children}
           </main>
           <BottomNav />

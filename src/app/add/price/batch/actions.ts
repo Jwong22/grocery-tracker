@@ -72,7 +72,7 @@ export async function submitBatch(
       failed.push({ index: i, message: variant.error });
       continue;
     }
-    const { error } = await supabase.from("price_entries").insert({
+    const insertData: Record<string, unknown> = {
       product_variant_id: variant.id,
       store_id: store.id,
       price_myr: row.priceMyr,
@@ -80,8 +80,11 @@ export async function submitBatch(
       observed_at: row.observedAt,
       source: row.source,
       notes: row.notes,
-      evidence_paths: row.evidencePaths,
-    });
+    };
+    if (row.evidencePaths.length > 0) {
+      insertData.evidence_paths = row.evidencePaths;
+    }
+    const { error } = await supabase.from("price_entries").insert(insertData);
     if (error) {
       failed.push({ index: i, message: error.message });
       continue;

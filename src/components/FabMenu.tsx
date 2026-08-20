@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils/cn";
 export function FabMenu() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   // Close menu on Escape
@@ -19,19 +21,28 @@ export function FabMenu() {
     return () => document.removeEventListener("keydown", handleKey);
   }, [open]);
 
-  const handleOption = (action: "camera" | "gallery" | "manual") => {
+  const handleFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
     setOpen(false);
-    switch (action) {
-      case "camera":
-        router.push("/add/price/batch?source=camera");
-        break;
-      case "gallery":
-        router.push("/add/price/batch?source=gallery");
-        break;
-      case "manual":
-        router.push("/add/price");
-        break;
-    }
+    // Store files in sessionStorage as data URLs, then navigate to batch page
+    const fileArray = Array.from(files);
+    const promises = fileArray.map(
+      (f) =>
+        new Promise<{ name: string; type: string; data: string }>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () =>
+            resolve({ name: f.name, type: f.type, data: reader.result as string });
+          reader.readAsDataURL(f);
+        }),
+    );
+    Promise.all(promises).then((results) => {
+      try {
+        sessionStorage.setItem("fab_photos", JSON.stringify(results));
+      } catch {
+        // If too large for sessionStorage, just navigate without pre-loading
+      }
+      router.push("/add/price/batch?source=camera");
+    });
   };
 
   return (
@@ -58,13 +69,11 @@ export function FabMenu() {
         role="menu"
         aria-label="Add price options"
       >
-        {/* Left bubble: Take Photo */}
-        <button
-          type="button"
+        {/* Left bubble: Take Photo — uses label+input to directly open camera */}
+        <label
           role="menuitem"
-          onClick={() => handleOption("camera")}
           className={cn(
-            "flex flex-col items-center gap-2 transition-all duration-300",
+            "flex flex-col items-center gap-2 transition-all duration-300 cursor-pointer",
             open
               ? "opacity-100 translate-y-0 delay-75"
               : "opacity-0 translate-y-3",
@@ -84,15 +93,24 @@ export function FabMenu() {
           <span className="text-[11px] font-medium text-foreground">
             Photo
           </span>
-        </button>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              handleFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </label>
 
-        {/* Center bubble: Choose from Gallery */}
-        <button
-          type="button"
+        {/* Center bubble: Choose from Gallery — uses label+input without capture */}
+        <label
           role="menuitem"
-          onClick={() => handleOption("gallery")}
           className={cn(
-            "flex flex-col items-center gap-2 transition-all duration-300",
+            "flex flex-col items-center gap-2 transition-all duration-300 cursor-pointer",
             open
               ? "opacity-100 translate-y-0 delay-100"
               : "opacity-0 translate-y-3",
@@ -112,13 +130,27 @@ export function FabMenu() {
           <span className="text-[11px] font-medium text-foreground">
             Gallery
           </span>
-        </button>
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              handleFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </label>
 
         {/* Right bubble: Manual Entry */}
         <button
           type="button"
           role="menuitem"
-          onClick={() => handleOption("manual")}
+          onClick={() => {
+            setOpen(false);
+            router.push("/add/price");
+          }}
           className={cn(
             "flex flex-col items-center gap-2 transition-all duration-300",
             open
