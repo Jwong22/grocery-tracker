@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
+import { FabMenu } from "./FabMenu";
 
 type Tab = {
   href: string;
@@ -38,31 +39,18 @@ export function BottomNavBar() {
     >
       <ul className="grid grid-cols-5 h-16">
         {TABS.map((t) => {
-          const active = isActive(pathname, t.href);
-          const Icon = t.icon;
           if (t.fab) {
             return (
               <li
                 key={t.href}
                 className="relative flex items-end justify-center"
               >
-                <Link
-                  href={t.href}
-                  aria-label={t.label}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "absolute -top-5 inline-flex h-14 w-14 items-center justify-center rounded-full",
-                    "bg-primary text-primary-foreground shadow-lg ring-4 ring-background",
-                    "transition-transform hover:scale-105 active:scale-95",
-                    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/40",
-                    active && "ring-primary/30",
-                  )}
-                >
-                  <Icon className="h-6 w-6" aria-hidden="true" />
-                </Link>
+                <FabMenu />
               </li>
             );
           }
+          const active = isActive(pathname, t.href);
+          const Icon = t.icon;
           return (
             <li key={t.href} className="flex">
               <Link

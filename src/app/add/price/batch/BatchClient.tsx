@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Combobox, type ComboboxItem } from "@/components/Combobox";
 import { StoreMapPicker } from "@/components/map/StoreMapPicker";
 import { cn } from "@/lib/utils/cn";
@@ -31,14 +32,30 @@ import {
 type Stage = "idle" | "photo" | "pdf" | "excel";
 
 export function BatchClient() {
+  const searchParams = useSearchParams();
   const [rows, setRows] = useState<BatchRow[]>([]);
   const [stage, setStage] = useState<Stage>("idle");
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [storeItem, setStoreItem] = useState<ComboboxItem | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const autoTriggered = useRef(false);
 
   const defaultStore = storeItem?.label ?? "";
+
+  // Auto-open camera/gallery when navigated from FAB menu
+  const source = searchParams.get("source");
+  useEffect(() => {
+    if (autoTriggered.current) return;
+    if (source === "camera" || source === "gallery") {
+      autoTriggered.current = true;
+      // Small delay to let the DOM settle
+      setTimeout(() => {
+        photoInputRef.current?.click();
+      }, 300);
+    }
+  }, [source]);
 
   const storeSearch = useCallback(
     async (q: string): Promise<ComboboxItem[]> => {
@@ -267,6 +284,8 @@ export function BatchClient() {
           disabled={busy}
           onPick={handlePhoto}
           accent="accent"
+          inputRef={photoInputRef}
+          capture={source === "camera" ? "environment" : undefined}
         />
         <UploadButton
           icon={
@@ -332,6 +351,8 @@ type UploadProps = {
   disabled?: boolean;
   accent?: "primary" | "accent";
   onPick: (files: FileList | null) => void;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+  capture?: "user" | "environment";
 };
 
 function storeHint(r: StoreRow): string | null {
@@ -388,6 +409,8 @@ function UploadButton({
   disabled,
   accent = "primary",
   onPick,
+  inputRef,
+  capture,
 }: UploadProps) {
   const colour =
     accent === "accent"
@@ -404,10 +427,12 @@ function UploadButton({
       {icon}
       <span>{label}</span>
       <input
+        ref={inputRef}
         type="file"
         accept={accept}
         multiple={multiple}
         disabled={disabled}
+        capture={capture}
         className="hidden"
         onChange={(e) => {
           onPick(e.target.files);

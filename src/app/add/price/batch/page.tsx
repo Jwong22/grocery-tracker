@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { BatchClient } from "./BatchClient";
 
 export default function BatchImportPage() {
@@ -13,7 +14,9 @@ export default function BatchImportPage() {
           and Excel feed into the same table.
         </p>
       </header>
-      <BatchClient />
+      <Suspense fallback={<div className="text-sm text-muted-foreground">Loading…</div>}>
+        <BatchClient />
+      </Suspense>
     </div>
   );
 }

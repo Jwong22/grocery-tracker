@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Field } from "@/components/ui/Field";
@@ -35,6 +35,20 @@ export type TravelConfig = {
 
 type SortMode = "price" | "total";
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    timerRef.current = setTimeout(() => setDebounced(value), delay);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [value, delay]);
+
+  return debounced;
+}
+
 export function SearchClient({ travel }: { travel: TravelConfig | null }) {
   const [query, setQuery] = useState("");
   const [packType, setPackType] = useState<PackType | "any">("any");
@@ -42,13 +56,14 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
   const [origin, setOrigin] = useState("");
   const [sort, setSort] = useState<SortMode>(travel ? "total" : "price");
 
-  const enabled = query.trim().length >= 2;
+  const debouncedQuery = useDebounce(query.trim(), 300);
+  const enabled = debouncedQuery.length >= 2;
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ["search", query.trim(), packType, brand.trim(), origin.trim()],
+    queryKey: ["search", debouncedQuery, packType, brand.trim(), origin.trim()],
     queryFn: () =>
       searchCheapest({
-        query,
+        query: debouncedQuery,
         packType,
         brand,
         origin,
