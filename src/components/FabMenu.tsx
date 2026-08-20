@@ -61,7 +61,7 @@ export function FabMenu() {
       <div
         ref={menuRef}
         className={cn(
-          "fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-end gap-5",
+          "fixed bottom-32 left-1/2 -translate-x-1/2 z-50 flex items-end gap-5",
           "transition-all duration-300 ease-out",
           open
             ? "opacity-100 translate-y-0 pointer-events-auto"
@@ -106,7 +106,7 @@ export function FabMenu() {
           className={cn(
             "flex flex-col items-center gap-2 transition-all duration-300",
             open
-              ? "opacity-100 -translate-y-3 delay-100"
+              ? "opacity-100 translate-y-0 delay-100"
               : "opacity-0 translate-y-3",
           )}
         >
