@@ -14,22 +14,22 @@ export function CuteLoader({ className }: { className?: string }) {
       )}
     >
       {/* Bouncing items - evenly spaced */}
-      <div className="flex items-end justify-center gap-5 h-16">
-        <span className="text-2xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "0ms" }}>
+      <div className="flex items-end justify-center gap-6 h-20">
+        <span className="text-4xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "0ms" }}>
           🥕
         </span>
-        <span className="text-2xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "150ms" }}>
+        <span className="text-4xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "150ms" }}>
           🥦
         </span>
-        <span className="text-2xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "300ms" }}>
+        <span className="text-4xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "300ms" }}>
           🍎
         </span>
-        <span className="text-2xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "450ms" }}>
+        <span className="text-4xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "450ms" }}>
           🧈
         </span>
       </div>
       {/* Cart wiggling */}
-      <div className="animate-[wiggle_1.2s_ease-in-out_infinite] text-3xl">
+      <div className="animate-[wiggle_1.2s_ease-in-out_infinite] text-5xl">
         🛒
       </div>
       <p className="text-sm text-muted-foreground animate-pulse">
