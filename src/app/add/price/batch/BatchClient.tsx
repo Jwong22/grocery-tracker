@@ -51,12 +51,39 @@ export function BatchClient() {
     if (autoTriggered.current) return;
     if (source === "camera" || source === "gallery") {
       autoTriggered.current = true;
-      // Small delay to let the DOM settle
+
+      // Check if photos were pre-loaded via sessionStorage (from FabMenu)
+      const stored = sessionStorage.getItem("fab_photos");
+      if (stored) {
+        sessionStorage.removeItem("fab_photos");
+        try {
+          const photos = JSON.parse(stored) as { name: string; type: string; data: string }[];
+          if (photos.length > 0) {
+            // Convert data URLs back to Files and auto-process
+            const files = photos.map((p) => {
+              const arr = p.data.split(",");
+              const bstr = atob(arr[1]);
+              const n = bstr.length;
+              const u8arr = new Uint8Array(n);
+              for (let i = 0; i < n; i++) u8arr[i] = bstr.charCodeAt(i);
+              return new File([u8arr], p.name, { type: p.type || "image/jpeg" });
+            });
+            const dt = new DataTransfer();
+            files.forEach((f) => dt.items.add(f));
+            handlePhoto(dt.files);
+            return;
+          }
+        } catch {
+          // Fall through to file input click
+        }
+      }
+
+      // Fallback: open file picker
       setTimeout(() => {
         photoInputRef.current?.click();
       }, 300);
     }
-  }, [source]);
+  }, [source]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const storeSearch = useCallback(
     async (q: string): Promise<ComboboxItem[]> => {

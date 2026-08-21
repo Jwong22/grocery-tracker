@@ -30,6 +30,7 @@ export function PriceForm() {
   const [store, setStore] = useState<ComboboxItem | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  const [alsoBought, setAlsoBought] = useState(false);
   const handledRef = useRef<PriceFormState | null>(null);
   const { success, error: toastError } = useToast();
 
@@ -229,6 +230,44 @@ export function PriceForm() {
           />
         )}
       </Field>
+
+      {/* Toggle: also log as a purchase */}
+      <div className="rounded-lg border border-border bg-card p-3 space-y-3">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            name="also_bought"
+            checked={alsoBought}
+            onChange={(e) => setAlsoBought(e.target.checked)}
+            className="h-4 w-4 rounded border-border text-primary focus:ring-ring"
+          />
+          <div>
+            <span className="text-sm font-medium text-foreground">
+              I bought this
+            </span>
+            <p className="text-xs text-muted-foreground">
+              Also log as a purchase — we&rsquo;ll tell you if it was the cheapest
+            </p>
+          </div>
+        </label>
+        {alsoBought && (
+          <Field label="Quantity" error={state.errors?.qty?.[0]}>
+            {(p) => (
+              <Input
+                {...p}
+                name="qty"
+                type="number"
+                step="1"
+                min="1"
+                inputMode="numeric"
+                defaultValue="1"
+                placeholder="1"
+                invalid={Boolean(state.errors?.qty?.[0])}
+              />
+            )}
+          </Field>
+        )}
+      </div>
 
       <EvidenceUpload />
 

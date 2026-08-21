@@ -14,9 +14,9 @@ type Tab = {
 
 const TABS: Tab[] = [
   { href: "/search", label: "Search", icon: SearchIcon },
-  { href: "/add/purchase", label: "+ Buy", icon: CartIcon },
-  { href: "/add/price", label: "Add price", icon: PriceIcon, fab: true },
   { href: "/history", label: "History", icon: HistoryIcon },
+  { href: "/add/price", label: "Add", icon: PriceIcon, fab: true },
+  { href: "/add/purchase", label: "Buy", icon: CartIcon },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 

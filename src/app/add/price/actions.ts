@@ -196,11 +196,28 @@ export async function submitPriceEntry(
     return { ok: false, message: insertErr.message };
   }
 
+  // If user also bought this, create a purchase record
+  const alsoBought = formData.get("also_bought") === "on";
+  if (alsoBought) {
+    const qty = Number(formData.get("qty") ?? "1") || 1;
+    await supabase.from("purchases").insert({
+      product_variant_id: variant.id,
+      store_id: v.store_id,
+      price_paid_myr: v.price_myr,
+      qty,
+      pack_size_g_at_purchase: v.pack_size_g,
+      purchased_at: v.observed_at,
+      notes: v.notes,
+      evidence_paths: evidencePaths,
+    });
+  }
+
   revalidatePath("/search");
   revalidatePath("/history");
   const note =
     uploadErrors.length > 0
       ? ` (${uploadErrors.length} attachment${uploadErrors.length === 1 ? "" : "s"} failed)`
       : "";
-  return { ok: true, message: `Price recorded.${note}` };
+  const action = alsoBought ? "Price recorded & purchase logged." : "Price recorded.";
+  return { ok: true, message: `${action}${note}` };
 }

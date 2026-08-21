@@ -7,11 +7,11 @@ export default function AddPricePage() {
       <header className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Record a price
+            Add entry
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Pick a product and store, fill the price, and save. New products and
-            stores can be created inline.
+            Record a price you spotted. Tick &ldquo;I bought this&rdquo; to also
+            log it as a purchase.
           </p>
         </div>
         <Link

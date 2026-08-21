@@ -33,8 +33,8 @@ const tiles: Tile[] = [
   },
   {
     href: "/add/price",
-    title: "Record a price",
-    desc: "Manual, photo, PDF, or Excel — multiple at once.",
+    title: "Add entry",
+    desc: "Record a price or purchase — manual, photo, or bulk import.",
     tone: "info",
     icon: (
       <svg
@@ -52,8 +52,8 @@ const tiles: Tile[] = [
   },
   {
     href: "/add/purchase",
-    title: "Log a purchase",
-    desc: "We'll flag whether you got the cheapest deal.",
+    title: "Quick purchase",
+    desc: "Log a buy — we'll flag if you got the cheapest deal.",
     tone: "accent",
     icon: (
       <svg
