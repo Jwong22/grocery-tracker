@@ -23,6 +23,7 @@ import { smartParseImage } from "@/lib/ocr/smartParse";
 import { groqParseImage } from "@/lib/ocr/groqParse";
 import { mergeProviderRows } from "@/lib/ocr/mergeRows";
 import { compressImage } from "@/lib/utils/compressImage";
+import { getCurrentPosition, findNearestStore } from "@/lib/utils/nearestStore";
 import {
   BatchReviewTable,
   emptyRow,
@@ -83,6 +84,27 @@ export function BatchClient() {
         photoInputRef.current?.click();
       }, 300);
     }
+  }, [source]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-detect GPS location and select nearest store
+  const locationDetected = useRef(false);
+  useEffect(() => {
+    if (locationDetected.current) return;
+    if (source !== "camera" && source !== "gallery") return;
+    locationDetected.current = true;
+
+    (async () => {
+      const pos = await getCurrentPosition();
+      if (!pos) return;
+      const nearest = await findNearestStore(pos);
+      if (nearest) {
+        setStoreItem({
+          id: nearest.id,
+          label: nearest.name,
+          hint: nearest.address ?? nearest.chain ?? null,
+        });
+      }
+    })();
   }, [source]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const storeSearch = useCallback(

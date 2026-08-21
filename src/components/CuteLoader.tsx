@@ -3,32 +3,32 @@
 import { cn } from "@/lib/utils/cn";
 
 /**
- * A cute animated loader with bouncing grocery items.
+ * A cute animated loader with bouncing grocery items — centered on screen.
  */
 export function CuteLoader({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-4 py-12",
+        "flex flex-col items-center justify-center min-h-[60vh] gap-3",
         className,
       )}
     >
-      <div className="relative h-16 w-32">
-        {/* Bouncing items */}
-        <span className="absolute left-3 animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "0ms" }}>
+      {/* Bouncing items - evenly spaced */}
+      <div className="flex items-end justify-center gap-5 h-16">
+        <span className="text-2xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "0ms" }}>
           🥕
         </span>
-        <span className="absolute left-11 animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "150ms" }}>
+        <span className="text-2xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "150ms" }}>
           🥦
         </span>
-        <span className="absolute left-[76px] animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "300ms" }}>
+        <span className="text-2xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "300ms" }}>
           🍎
         </span>
-        <span className="absolute right-3 animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "450ms" }}>
+        <span className="text-2xl animate-[bounce_0.8s_ease-in-out_infinite]" style={{ animationDelay: "450ms" }}>
           🧈
         </span>
       </div>
-      {/* Cart rolling in */}
+      {/* Cart wiggling */}
       <div className="animate-[wiggle_1.2s_ease-in-out_infinite] text-3xl">
         🛒
       </div>

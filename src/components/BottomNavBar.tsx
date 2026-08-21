@@ -16,7 +16,7 @@ const TABS: Tab[] = [
   { href: "/search", label: "Search", icon: SearchIcon },
   { href: "/history", label: "History", icon: HistoryIcon },
   { href: "/add/price", label: "Add", icon: PriceIcon, fab: true },
-  { href: "/add/purchase", label: "Buy", icon: CartIcon },
+  { href: "/stores", label: "Stores", icon: StoreIcon },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -123,6 +123,23 @@ function CartIcon(props: React.SVGProps<SVGSVGElement>) {
       <circle cx="9" cy="20" r="1.4" />
       <circle cx="18" cy="20" r="1.4" />
       <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 2-1.55L21 8H6" />
+    </svg>
+  );
+}
+
+function StoreIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
     </svg>
   );
 }
