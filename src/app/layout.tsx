@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/Providers";
+import { NavigationProgress } from "@/components/NavigationProgress";
 import { TopNav } from "@/components/TopNav";
 import { BottomNav } from "@/components/BottomNav";
 import { THEME_INIT_SCRIPT } from "@/components/ThemeProvider";
@@ -50,6 +51,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-hidden">
         <Providers>
+          <NavigationProgress />
           <TopNav />
           <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 sm:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-8 overflow-x-hidden">
             {children}
