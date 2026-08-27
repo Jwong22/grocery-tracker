@@ -67,5 +67,5 @@ export async function updateStore(
 
   revalidatePath("/search");
   revalidatePath(`/stores/${storeId}`);
-  return { ok: true, message: "Saved." };
+  return { ok: true, message: "Store details saved." };
 }

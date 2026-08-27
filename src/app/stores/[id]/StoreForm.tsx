@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useActionState, useCallback, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useToast } from "@/components/Toaster";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
@@ -38,6 +39,19 @@ type Props = {
 export function StoreForm({ storeId, defaults }: Props) {
   const action = updateStore.bind(null, storeId);
   const [state, formAction, pending] = useActionState(action, initialState);
+  const { success, error: toastError } = useToast();
+  const handledRef = useRef<StoreFormState | null>(null);
+
+  useEffect(() => {
+    if (handledRef.current === state) return;
+    if (state.ok && state.message) {
+      handledRef.current = state;
+      success(state.message);
+    } else if (!state.ok && state.message) {
+      handledRef.current = state;
+      toastError(state.message);
+    }
+  }, [state, success, toastError]);
 
   const [address, setAddress] = useState(defaults.address ?? "");
   const [lat, setLat] = useState<number | null>(defaults.lat);
@@ -261,13 +275,8 @@ export function StoreForm({ storeId, defaults }: Props) {
         </CardContent>
       </Card>
 
-      {state.message && (
-        <p
-          className={`text-sm ${
-            state.ok ? "text-primary-soft-foreground" : "text-destructive"
-          }`}
-          role={state.ok ? "status" : "alert"}
-        >
+      {!state.ok && state.message && (
+        <p className="text-sm text-destructive" role="alert">
           {state.message}
         </p>
       )}
