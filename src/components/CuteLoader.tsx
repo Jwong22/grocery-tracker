@@ -22,7 +22,6 @@ export function CuteLoader({ className }: { className?: string }) {
     <div
       className={cn(
         "flex flex-col items-center justify-center min-h-[60vh] gap-6",
-        "rounded-2xl bg-[#e3f2f8] dark:bg-[#0f1b22]",
         "[animation:loader-fade-in_300ms_ease-out]",
         className,
       )}
@@ -41,9 +40,7 @@ export function CuteLoader({ className }: { className?: string }) {
         ))}
       </div>
 
-      <p className="text-sm text-[#6b8a99] dark:text-muted-foreground">
-        Loading…
-      </p>
+      <p className="text-sm text-muted-foreground">Loading…</p>
 
       <span className="sr-only" role="status">
         Loading
