@@ -9,19 +9,31 @@ A) A till / checkout receipt (multiple line items with prices and a total).
 B) A shelf-edge price tag or sticker (one product, price shown per piece or per kg).
 C) A weighed-produce sticker (one item with a printed weight and total price).
 
-Return STRICT JSON — an array of items with this shape:
-[
-  {
-    "productName": "broccoli",
-    "brand": null,
-    "originCountry": "China",
-    "packType": "loose",
-    "packSizeG": null,
-    "priceMyr": 2.69
-  }
-]
+Return STRICT JSON — an OBJECT with a "store" object and an "items" array:
+{
+  "store": {
+    "name": "AEON Big",
+    "address": "Lot 1, Jalan Contoh, 50000 Kuala Lumpur"
+  },
+  "items": [
+    {
+      "productName": "broccoli",
+      "brand": null,
+      "originCountry": "China",
+      "packType": "loose",
+      "packSizeG": null,
+      "priceMyr": 2.69
+    }
+  ]
+}
 
-Rules:
+Store rules (READ THE HEADER AT THE TOP OF THE RECEIPT):
+- "store.name" = the shop/merchant name printed at the top (e.g. "AEON", "NSK Trade City", "Lotus's", "99 Speedmart"). Strip legal suffixes like "Sdn Bhd" unless that is the only name shown.
+- "store.address" = the street address / branch location printed near the header, joined into one line. null if none is printed.
+- If the image is a shelf tag or produce sticker with no shop header, set store to {"name": null, "address": null}.
+- Never invent a store; only use text actually visible in the image.
+
+Item rules:
 - packType ∈ {loose, packet, bottle, can, bag, box, tray, bunch}. Default "loose".
 - packSizeG is grams. kg→1000, ml→approx grams. null if unknown or sold per piece.
 - priceMyr is a NUMBER in Malaysian Ringgit (not a string).
@@ -31,8 +43,8 @@ Rules:
   • "/KG" → set packSizeG = 1000 so priceMyr represents 1 kg.
   • Pull country from a "Country:" line into originCountry. Ignore "Grade", "Size", barcodes.
 - Weighed-produce stickers: emit ONE item, priceMyr = total price shown, packSizeG = printed weight in grams.
-- If the image is unreadable or contains no price, return [].
-- Output ONLY the JSON array. No prose, no markdown fences.`;
+- If the image is unreadable or contains no price, return {"store": {"name": null, "address": null}, "items": []}.
+- Output ONLY the JSON object. No prose, no markdown fences.`;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
