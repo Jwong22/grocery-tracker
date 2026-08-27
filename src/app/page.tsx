@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils/cn";
+import { computeTotals, type SpendPurchase } from "@/lib/analytics/spending";
 
 const myr = new Intl.NumberFormat("en-MY", {
   style: "currency",
@@ -29,6 +30,15 @@ type RecentPriceRow = {
   store: { name: string; chain: string | null } | null;
 };
 
+type RecentPurchaseRow = {
+  id: string;
+  price_paid_myr: number;
+  qty: number;
+  purchased_at: string;
+  product_variant: RecentVariant | null;
+  store: { name: string; chain: string | null } | null;
+};
+
 function variantBits(v: RecentVariant): string[] {
   return [
     v.brand,
@@ -46,96 +56,99 @@ type Tile = {
   icon: React.ReactNode;
 };
 
-const tiles: Tile[] = [
-  {
-    href: "/search",
-    title: "Search cheapest",
-    desc: "Find the lowest price near you, travel-cost adjusted.",
-    tone: "primary",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-      >
-        <circle cx="11" cy="11" r="7" />
-        <path d="m20 20-3.5-3.5" />
-      </svg>
-    ),
-  },
-  {
-    href: "/add/price",
-    title: "Add entry",
-    desc: "Record a price or purchase — manual, photo, or bulk import.",
-    tone: "info",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-      >
-        <path d="M12 5v14M5 12h14" />
-      </svg>
-    ),
-  },
-  {
-    href: "/add/purchase",
-    title: "Quick purchase",
-    desc: "Log a buy — we'll flag if you got the cheapest deal.",
-    tone: "accent",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-      >
-        <path d="M3 3h2l2.7 12.3a2 2 0 0 0 2 1.7h7.7a2 2 0 0 0 2-1.6L21 8H6" />
-        <circle cx="9" cy="20" r="1.5" />
-        <circle cx="18" cy="20" r="1.5" />
-      </svg>
-    ),
-  },
-  {
-    href: "/history",
-    title: "Purchase history",
-    desc: "Review past buys and how they compared.",
-    tone: "violet",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-      >
-        <path d="M3 12a9 9 0 1 0 3-6.7" />
-        <path d="M3 4v5h5" />
-        <path d="M12 7v5l3 2" />
-      </svg>
-    ),
-  },
-];
-
 const toneStyles: Record<Tile["tone"], string> = {
   primary: "bg-primary-soft text-primary-soft-foreground",
   info: "bg-info-soft text-info-soft-foreground",
   accent: "bg-accent-soft text-accent-soft-foreground",
   violet: "bg-violet-soft text-violet-soft-foreground",
 };
+
+const SearchIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.5-3.5" />
+  </svg>
+);
+const ListIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+  </svg>
+);
+const PlusIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+const ChartIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+    <path d="M3 3v18h18" />
+    <rect x="7" y="10" width="3" height="7" />
+    <rect x="12" y="6" width="3" height="11" />
+    <rect x="17" y="13" width="3" height="4" />
+  </svg>
+);
+const HistoryIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+    <path d="M3 12a9 9 0 1 0 3-6.7" />
+    <path d="M3 4v5h5" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+);
+const CartIcon = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+    <path d="M3 3h2l2.7 12.3a2 2 0 0 0 2 1.7h7.7a2 2 0 0 0 2-1.6L21 8H6" />
+    <circle cx="9" cy="20" r="1.5" />
+    <circle cx="18" cy="20" r="1.5" />
+  </svg>
+);
+
+const priceTiles: Tile[] = [
+  {
+    href: "/search",
+    title: "Search cheapest",
+    desc: "Find the lowest price near you, travel-cost adjusted.",
+    tone: "primary",
+    icon: SearchIcon,
+  },
+  {
+    href: "/prices",
+    title: "Browse all prices",
+    desc: "See every price you've logged across stores.",
+    tone: "info",
+    icon: ListIcon,
+  },
+  {
+    href: "/add/price",
+    title: "Add a price",
+    desc: "Record a price you spotted — manual, photo, or bulk import.",
+    tone: "info",
+    icon: PlusIcon,
+  },
+];
+
+const spendingTiles: Tile[] = [
+  {
+    href: "/analytics",
+    title: "Spending dashboard",
+    desc: "Daily, monthly and yearly spend at a glance.",
+    tone: "violet",
+    icon: ChartIcon,
+  },
+  {
+    href: "/history",
+    title: "Purchase history",
+    desc: "Review past buys and how they compared.",
+    tone: "violet",
+    icon: HistoryIcon,
+  },
+  {
+    href: "/add/purchase",
+    title: "Log a purchase",
+    desc: "Record what you bought — we'll flag the cheapest deal.",
+    tone: "accent",
+    icon: CartIcon,
+  },
+];
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -149,24 +162,48 @@ export default async function HomePage() {
     user?.email?.split("@")[0] ??
     "there";
 
-  const { data: recentData } = await supabase
-    .from("price_entries")
-    .select(
-      `id, price_myr, observed_at,
-       product_variant:product_variants!inner (
-         brand, origin_country, pack_type, pack_size_g,
-         product:products!inner ( canonical_name )
-       ),
-       store:stores!inner ( name, chain )`,
-    )
-    .order("observed_at", { ascending: false })
-    .limit(5)
-    .returns<RecentPriceRow[]>();
+  const [pricesRes, purchasesRes] = await Promise.all([
+    supabase
+      .from("price_entries")
+      .select(
+        `id, price_myr, observed_at,
+         product_variant:product_variants!inner (
+           brand, origin_country, pack_type, pack_size_g,
+           product:products!inner ( canonical_name )
+         ),
+         store:stores!inner ( name, chain )`,
+      )
+      .order("observed_at", { ascending: false })
+      .limit(3)
+      .returns<RecentPriceRow[]>(),
+    supabase
+      .from("purchases")
+      .select(
+        `id, price_paid_myr, qty, purchased_at,
+         product_variant:product_variants!inner (
+           brand, origin_country, pack_type, pack_size_g,
+           product:products!inner ( canonical_name )
+         ),
+         store:stores!inner ( name, chain )`,
+      )
+      .order("purchased_at", { ascending: false })
+      .returns<RecentPurchaseRow[]>(),
+  ]);
 
-  const recent = recentData ?? [];
+  const recentPrices = pricesRes.data ?? [];
+  const allPurchases = purchasesRes.data ?? [];
+  const recentPurchases = allPurchases.slice(0, 3);
+
+  const monthTotal = computeTotals(
+    allPurchases.map<SpendPurchase>((p) => ({
+      purchasedAt: p.purchased_at,
+      pricePaidMyr: Number(p.price_paid_myr),
+      qty: Number(p.qty),
+    })),
+  ).month;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <header className="space-y-1">
         <p className="text-sm text-muted-foreground">Welcome back,</p>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -174,119 +211,107 @@ export default async function HomePage() {
         </h1>
       </header>
 
-      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {tiles.map((t) => (
-          <li key={t.href}>
-            <Link
-              href={t.href}
-              className="group block rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <div className="flex items-start gap-3">
-                <span
-                  className={cn(
-                    "inline-flex h-10 w-10 items-center justify-center rounded-lg shrink-0",
-                    toneStyles[t.tone],
-                  )}
-                >
-                  {t.icon}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium text-foreground">{t.title}</div>
-                  <div className="text-sm text-muted-foreground mt-0.5">
-                    {t.desc}
-                  </div>
-                </div>
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                >
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {/* ===================== PRICES ===================== */}
+      <section className="space-y-4">
+        <SectionHeader
+          eyebrow="Compare & find deals"
+          title="Prices"
+          desc="Track what things cost across stores so you always know where's cheapest."
+        />
+        <TileGrid tiles={priceTiles} />
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+        <div className="flex items-center justify-between pt-1">
+          <h3 className="text-sm font-medium text-muted-foreground">
             Recent prices
-          </h2>
-          {recent.length > 0 && (
-            <Link
-              href="/prices"
-              className="text-sm text-primary hover:underline"
-            >
+          </h3>
+          {recentPrices.length > 0 && (
+            <Link href="/prices" className="text-sm text-primary hover:underline">
               View all
             </Link>
           )}
         </div>
-
-        {recent.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-card/50 p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              No prices logged yet. Add one from{" "}
-              <a className="text-primary hover:underline" href="/add/price">
-                Add entry
-              </a>
-              .
-            </p>
-          </div>
+        {recentPrices.length === 0 ? (
+          <EmptyHint>
+            No prices logged yet. Start with{" "}
+            <a className="text-primary hover:underline" href="/add/price">
+              Add a price
+            </a>
+            .
+          </EmptyHint>
         ) : (
           <ul className="space-y-2.5">
-            {recent.map((r) => {
+            {recentPrices.map((r) => {
               const v = r.product_variant;
               const name = v?.product?.canonical_name ?? "Unknown item";
               const bits = v ? variantBits(v) : [];
               return (
-                <li
+                <PreviewCard
                   key={r.id}
-                  className="relative rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-primary/30"
-                >
-                  <Link
-                    href={`/prices/${r.id}`}
-                    className="absolute inset-0 rounded-xl"
-                    aria-label={`View price entry for ${name}`}
-                  />
-                  <div className="relative flex items-start justify-between gap-3 pointer-events-none">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-foreground truncate">
-                        {name}
-                      </div>
-                      {bits.length > 0 && (
-                        <div className="text-xs text-muted-foreground truncate mt-0.5">
-                          {bits.join(" · ")}
-                        </div>
-                      )}
-                      {r.store && (
-                        <div className="text-sm text-foreground mt-1.5 truncate">
-                          {r.store.name}
-                          {r.store.chain ? (
-                            <span className="text-muted-foreground">
-                              {" · "}
-                              {r.store.chain}
-                            </span>
-                          ) : null}
-                        </div>
-                      )}
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {dateFmt.format(new Date(r.observed_at))}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-lg font-semibold text-foreground tabular-nums">
-                        {myr.format(Number(r.price_myr))}
-                      </div>
-                    </div>
-                  </div>
-                </li>
+                  href={`/prices/${r.id}`}
+                  name={name}
+                  bits={bits}
+                  store={r.store}
+                  amount={myr.format(Number(r.price_myr))}
+                  date={dateFmt.format(new Date(r.observed_at))}
+                />
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* ===================== SPENDING ===================== */}
+      <section className="space-y-4">
+        <SectionHeader
+          eyebrow="Your money"
+          title="Spending"
+          desc="Record what you actually buy and see where your money goes."
+        />
+
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <div className="text-xs text-muted-foreground">Spent this month</div>
+          <div className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
+            {myr.format(monthTotal)}
+          </div>
+        </div>
+
+        <TileGrid tiles={spendingTiles} />
+
+        <div className="flex items-center justify-between pt-1">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            Recent purchases
+          </h3>
+          {recentPurchases.length > 0 && (
+            <Link href="/history" className="text-sm text-primary hover:underline">
+              View all
+            </Link>
+          )}
+        </div>
+        {recentPurchases.length === 0 ? (
+          <EmptyHint>
+            Nothing bought yet. Start with{" "}
+            <a className="text-primary hover:underline" href="/add/purchase">
+              Log a purchase
+            </a>
+            .
+          </EmptyHint>
+        ) : (
+          <ul className="space-y-2.5">
+            {recentPurchases.map((p) => {
+              const v = p.product_variant;
+              const name = v?.product?.canonical_name ?? "Unknown item";
+              const bits = v ? variantBits(v) : [];
+              return (
+                <PreviewCard
+                  key={p.id}
+                  href={`/purchases/${p.id}`}
+                  name={name}
+                  bits={bits}
+                  store={p.store}
+                  amount={myr.format(Number(p.price_paid_myr))}
+                  date={dateFmt.format(new Date(p.purchased_at))}
+                  qty={Number(p.qty)}
+                />
               );
             })}
           </ul>
@@ -298,5 +323,137 @@ export default async function HomePage() {
         home-screen icon.
       </p>
     </div>
+  );
+}
+
+function SectionHeader({
+  eyebrow,
+  title,
+  desc,
+}: {
+  eyebrow: string;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {eyebrow}
+      </p>
+      <h2 className="text-xl font-semibold tracking-tight text-foreground">
+        {title}
+      </h2>
+      <p className="text-sm text-muted-foreground mt-0.5">{desc}</p>
+    </div>
+  );
+}
+
+function TileGrid({ tiles }: { tiles: Tile[] }) {
+  return (
+    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {tiles.map((t) => (
+        <li key={t.href}>
+          <Link
+            href={t.href}
+            className="group block rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className={cn(
+                  "inline-flex h-10 w-10 items-center justify-center rounded-lg shrink-0",
+                  toneStyles[t.tone],
+                )}
+              >
+                {t.icon}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-foreground">{t.title}</div>
+                <div className="text-sm text-muted-foreground mt-0.5">
+                  {t.desc}
+                </div>
+              </div>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function EmptyHint({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-dashed border-border bg-card/50 p-6 text-center">
+      <p className="text-sm text-muted-foreground">{children}</p>
+    </div>
+  );
+}
+
+function PreviewCard({
+  href,
+  name,
+  bits,
+  store,
+  amount,
+  date,
+  qty,
+}: {
+  href: string;
+  name: string;
+  bits: string[];
+  store: { name: string; chain: string | null } | null;
+  amount: string;
+  date: string;
+  qty?: number;
+}) {
+  return (
+    <li className="relative rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-primary/30">
+      <Link
+        href={href}
+        className="absolute inset-0 rounded-xl"
+        aria-label={`View ${name}`}
+      />
+      <div className="relative flex items-start justify-between gap-3 pointer-events-none">
+        <div className="min-w-0 flex-1">
+          <div className="font-medium text-foreground truncate">{name}</div>
+          {bits.length > 0 && (
+            <div className="text-xs text-muted-foreground truncate mt-0.5">
+              {bits.join(" · ")}
+            </div>
+          )}
+          {store && (
+            <div className="text-sm text-foreground mt-1.5 truncate">
+              {store.name}
+              {store.chain ? (
+                <span className="text-muted-foreground">
+                  {" · "}
+                  {store.chain}
+                </span>
+              ) : null}
+            </div>
+          )}
+          <div className="text-xs text-muted-foreground mt-0.5">{date}</div>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-lg font-semibold text-foreground tabular-nums">
+            {amount}
+          </div>
+          {qty !== undefined && qty !== 1 && (
+            <div className="text-xs text-muted-foreground">×{qty}</div>
+          )}
+        </div>
+      </div>
+    </li>
   );
 }

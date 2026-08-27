@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
-type NavLink = { href: string; label: string };
+type NavLink = { href: string; label: string; group?: string };
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
@@ -72,10 +72,21 @@ export function NavMenu({ links }: { links: NavLink[] }) {
             "border border-border bg-popover text-popover-foreground shadow-lg",
           )}
         >
-          {links.map((l) => {
+          {links.map((l, i) => {
             const active = isActive(pathname, l.href);
+            const showGroup = l.group && l.group !== links[i - 1]?.group;
             return (
               <li key={l.href} role="none">
+                {showGroup && (
+                  <div
+                    className={cn(
+                      "px-3 pt-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground",
+                      i > 0 && "border-t border-border mt-1",
+                    )}
+                  >
+                    {l.group}
+                  </div>
+                )}
                 <Link
                   role="menuitem"
                   href={l.href}
