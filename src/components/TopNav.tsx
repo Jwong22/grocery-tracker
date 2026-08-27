@@ -17,6 +17,7 @@ export async function TopNav() {
   const links = [
     { href: "/", label: "Home" },
     { href: "/search", label: "Search" },
+    { href: "/prices", label: "Prices" },
     { href: "/add/price", label: "+ Price" },
     { href: "/add/purchase", label: "+ Purchase" },
     { href: "/stores", label: "Stores" },
