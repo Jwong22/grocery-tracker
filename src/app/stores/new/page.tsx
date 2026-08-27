@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { findOrCreateStoreByName } from "@/lib/server/findOrCreateByName";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
@@ -19,13 +20,10 @@ async function createStub(formData: FormData) {
   if (!parsed.success) {
     redirect("/stores/new?err=name");
   }
-  const { data, error } = await supabase
-    .from("stores")
-    .insert({ name: parsed.data.name })
-    .select("id")
-    .single();
-  if (error || !data) redirect("/stores/new?err=create");
-  redirect(`/stores/${data.id}`);
+  // Reuse an existing store with the same name instead of duplicating.
+  const resolved = await findOrCreateStoreByName(supabase, parsed.data.name);
+  if ("error" in resolved) redirect("/stores/new?err=create");
+  redirect(`/stores/${resolved.id}`);
 }
 
 export default async function NewStorePage({

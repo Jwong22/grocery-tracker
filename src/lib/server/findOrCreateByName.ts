@@ -34,6 +34,7 @@ export async function findOrCreateStoreByName(
   const trimmed = name.trim();
   if (trimmed.length < 2) return { error: "Store name too short" };
 
+  // Case-insensitive exact match first.
   const { data: existing, error: findErr } = await supabase
     .from("stores")
     .select("id")
@@ -42,6 +43,22 @@ export async function findOrCreateStoreByName(
     .maybeSingle();
   if (findErr) return { error: `Store lookup: ${findErr.message}` };
   if (existing?.id) return { id: existing.id };
+
+  // Fallback: match names that differ only by internal whitespace/case
+  // (e.g. "mid valley" vs "Mid valley" vs "midvalley"). Fetch candidates that
+  // share the first token and compare normalized (lowercased, spaces removed).
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+  const firstToken = trimmed.split(/\s+/)[0];
+  if (firstToken.length >= 2) {
+    const { data: candidates } = await supabase
+      .from("stores")
+      .select("id, name")
+      .ilike("name", `%${firstToken}%`)
+      .limit(50);
+    const target = norm(trimmed);
+    const hit = (candidates ?? []).find((c) => norm(c.name) === target);
+    if (hit?.id) return { id: hit.id };
+  }
 
   const { data: created, error: createErr } = await supabase
     .from("stores")

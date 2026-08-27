@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { findOrCreateVariant } from "@/lib/server/findOrCreateVariant";
+import { findOrCreateStoreByName } from "@/lib/server/findOrCreateByName";
 import { uploadEvidenceFiles } from "@/lib/storage/uploadEvidence";
 import {
   createPriceEntrySchema,
@@ -52,10 +53,15 @@ export async function createStoreAction(name: string): Promise<CreatedRef> {
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid store name");
   }
+  // Reuse an existing store with the same (case/whitespace-insensitive) name
+  // instead of creating a duplicate.
+  const resolved = await findOrCreateStoreByName(supabase, parsed.data.name);
+  if ("error" in resolved) throw new Error(resolved.error);
+
   const { data, error } = await supabase
     .from("stores")
-    .insert({ name: parsed.data.name })
     .select("id, name, address")
+    .eq("id", resolved.id)
     .single();
   if (error) throw new Error(error.message);
   return {
@@ -98,6 +104,45 @@ export async function createStoreWithLocationAction(input: {
         hint: existing.address ?? null,
       };
     }
+  }
+
+  // Name-based dedupe fallback (case/whitespace-insensitive) when there's no
+  // place_id match — avoids duplicate stores from repeated manual entry.
+  const byName = await findOrCreateStoreByName(supabase, parsed.data.name);
+  if ("error" in byName) throw new Error(byName.error);
+  const { data: nameHit } = await supabase
+    .from("stores")
+    .select("id, name, address, lat, lng, place_id")
+    .eq("id", byName.id)
+    .single();
+  // If the matched store already has coordinates/place, reuse it as-is.
+  if (nameHit && (nameHit.lat != null || nameHit.place_id)) {
+    return {
+      id: nameHit.id,
+      label: nameHit.name,
+      hint: nameHit.address ?? null,
+    };
+  }
+  // Otherwise enrich the freshly-found/created store with this location.
+  if (nameHit) {
+    const { data: updated, error: updErr } = await supabase
+      .from("stores")
+      .update({
+        address: parsed.data.address,
+        lat: parsed.data.lat,
+        lng: parsed.data.lng,
+        place_id: parsed.data.place_id,
+      })
+      .eq("id", nameHit.id)
+      .select("id, name, address")
+      .single();
+    if (updErr) throw new Error(updErr.message);
+    revalidatePath("/stores");
+    return {
+      id: updated.id,
+      label: updated.name,
+      hint: updated.address ?? null,
+    };
   }
 
   const { data, error } = await supabase
