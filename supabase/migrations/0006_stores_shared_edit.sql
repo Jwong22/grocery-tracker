@@ -1,4 +1,4 @@
--- 0005_stores_shared_edit.sql
+-- 0006_stores_shared_edit.sql
 -- Allow shared editing of stores.
 --
 -- Problem: the original policy "stores update own" only let the row's

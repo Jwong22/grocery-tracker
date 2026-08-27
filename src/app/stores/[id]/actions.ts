@@ -75,7 +75,7 @@ export async function updateStore(
       ok: false,
       message:
         "Couldn't save — you may not have permission to edit this store " +
-        "(it was created by someone else). Apply migration 0005 to allow shared edits.",
+        "(it was created by someone else). Apply migration 0006 to allow shared edits.",
     };
   }
 
