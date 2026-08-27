@@ -2,11 +2,10 @@
 
 import { cn } from "@/lib/utils/cn";
 
-const ITEMS = ["🥕", "🥦", "🍎", "🧈"] as const;
-
 /**
- * A polished animated loader: grocery items gently float in sequence above a
- * rolling cart, with a shimmering progress bar. Respects reduced-motion.
+ * Minimalist pastel "blob" loader — soft organic shapes gently drifting and
+ * breathing on a calm background. No dependencies; pure SVG + CSS. Honors
+ * prefers-reduced-motion (shapes hold still).
  */
 export function CuteLoader({ className }: { className?: string }) {
   return (
@@ -17,51 +16,61 @@ export function CuteLoader({ className }: { className?: string }) {
         className,
       )}
     >
-      {/* Floating items above their shadows */}
-      <div className="flex items-end justify-center gap-5 h-16">
-        {ITEMS.map((item, i) => (
-          <span key={item} className="relative flex flex-col items-center">
-            <span
-              className="loader-item text-3xl sm:text-4xl will-change-transform"
-              style={{
-                animation: "item-pop 1.1s cubic-bezier(0.45,0,0.55,1) infinite",
-                animationDelay: `${i * 130}ms`,
-              }}
-            >
-              {item}
-            </span>
-            {/* soft shadow */}
-            <span
-              className="loader-item mt-1 h-1.5 w-6 rounded-full bg-foreground/10 blur-[1px]"
-              style={{
-                animation: "item-pop 1.1s cubic-bezier(0.45,0,0.55,1) infinite",
-                animationDelay: `${i * 130}ms`,
-                animationDirection: "alternate-reverse",
-              }}
-              aria-hidden="true"
-            />
-          </span>
-        ))}
-      </div>
-
-      {/* Rolling cart */}
-      <div
-        className="loader-cart text-4xl sm:text-5xl will-change-transform"
-        style={{ animation: "cart-roll 1.4s ease-in-out infinite" }}
+      <svg
+        viewBox="0 0 240 200"
+        className="w-56 h-auto sm:w-64"
+        role="img"
+        aria-label="Loading"
       >
-        🛒
-      </div>
-
-      {/* Shimmer progress bar */}
-      <div className="relative h-1.5 w-40 overflow-hidden rounded-full bg-muted">
-        <span
-          className="loader-shimmer absolute inset-y-0 left-0 w-1/3 rounded-full bg-primary/70"
-          style={{ animation: "loader-shimmer 1.3s ease-in-out infinite" }}
-          aria-hidden="true"
+        {/* mint bean — top */}
+        <path
+          className="blob"
+          style={{
+            animation: "blob-float-a 3.4s ease-in-out infinite, blob-breathe 3.4s ease-in-out infinite",
+            transformOrigin: "center",
+          }}
+          fill="#a8d5ba"
+          d="M96 58c14-6 34-8 40 4 5 10-3 20-14 24-7 3-9 9-16 9-12 0-24-6-25-18-1-11 4-15 15-19z"
         />
-      </div>
+        {/* pink pill — right */}
+        <rect
+          className="blob"
+          style={{
+            animation: "blob-float-d 3s ease-in-out infinite, blob-breathe 3s ease-in-out infinite",
+            transformOrigin: "center",
+          }}
+          x="176"
+          y="70"
+          width="26"
+          height="52"
+          rx="13"
+          fill="#f4a9b8"
+        />
+        {/* yellow dot — left */}
+        <circle
+          className="blob"
+          style={{
+            animation: "blob-float-c 2.6s ease-in-out infinite",
+            transformOrigin: "center",
+          }}
+          cx="66"
+          cy="108"
+          r="16"
+          fill="#e8c05a"
+        />
+        {/* blue kidney bean — bottom */}
+        <path
+          className="blob"
+          style={{
+            animation: "blob-float-b 3.8s ease-in-out infinite, blob-breathe 3.8s ease-in-out infinite",
+            transformOrigin: "center",
+          }}
+          fill="#7fb0c4"
+          d="M108 132c16-8 40-4 42 12 2 14-14 22-28 24-10 1-16 8-26 4-12-5-16-20-10-32 4-9 12-4 22-8z"
+        />
+      </svg>
 
-      <p className="text-sm text-muted-foreground">Loading goodies…</p>
+      <p className="text-sm text-muted-foreground">Loading…</p>
 
       <span className="sr-only" role="status">
         Loading
