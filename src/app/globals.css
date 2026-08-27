@@ -217,3 +217,33 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   50% { transform: rotate(-2deg); }
   75% { transform: rotate(2deg) translateX(-2px); }
 }
+
+/* ---- Loader animations ---- */
+@keyframes cart-roll {
+  0%   { transform: translateX(-6px) rotate(-4deg); }
+  50%  { transform: translateX(6px) rotate(4deg); }
+  100% { transform: translateX(-6px) rotate(-4deg); }
+}
+
+@keyframes item-pop {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.85; }
+  50%      { transform: translateY(-14px) scale(1.12); opacity: 1; }
+}
+
+@keyframes loader-shimmer {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+
+@keyframes loader-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-item,
+  .loader-cart,
+  .loader-shimmer {
+    animation: none !important;
+  }
+}
