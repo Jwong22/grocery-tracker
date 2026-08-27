@@ -21,6 +21,7 @@ export async function TopNav() {
     { href: "/add/purchase", label: "+ Purchase" },
     { href: "/stores", label: "Stores" },
     { href: "/history", label: "History" },
+    { href: "/analytics", label: "Spending" },
     { href: "/settings", label: "Settings" },
   ];
 
