@@ -88,13 +88,6 @@ const ChartIcon = (
     <rect x="17" y="13" width="3" height="4" />
   </svg>
 );
-const HistoryIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-    <path d="M3 12a9 9 0 1 0 3-6.7" />
-    <path d="M3 4v5h5" />
-    <path d="M12 7v5l3 2" />
-  </svg>
-);
 const CartIcon = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
     <path d="M3 3h2l2.7 12.3a2 2 0 0 0 2 1.7h7.7a2 2 0 0 0 2-1.6L21 8H6" />
@@ -129,18 +122,11 @@ const priceTiles: Tile[] = [
 
 const spendingTiles: Tile[] = [
   {
-    href: "/analytics",
-    title: "Spending dashboard",
-    desc: "Daily, monthly and yearly spend at a glance.",
+    href: "/history",
+    title: "Spending & history",
+    desc: "Totals, charts, and every purchase in one place.",
     tone: "violet",
     icon: ChartIcon,
-  },
-  {
-    href: "/history",
-    title: "Purchase history",
-    desc: "Review past buys and how they compared.",
-    tone: "violet",
-    icon: HistoryIcon,
   },
   {
     href: "/add/purchase",
