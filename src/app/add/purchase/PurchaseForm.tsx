@@ -164,6 +164,40 @@ export function PurchaseForm() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        <Field label="Coupon / discount (MYR)" error={state.errors?.discount_myr?.[0]}>
+          {(p) => (
+            <Input
+              {...p}
+              name="discount_myr"
+              type="number"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              placeholder="optional"
+              invalid={Boolean(state.errors?.discount_myr?.[0])}
+            />
+          )}
+        </Field>
+        <Field label="Rounding adj. (MYR)" error={state.errors?.rounding_myr?.[0]}>
+          {(p) => (
+            <Input
+              {...p}
+              name="rounding_myr"
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              placeholder="optional, e.g. 0.02"
+              invalid={Boolean(state.errors?.rounding_myr?.[0])}
+            />
+          )}
+        </Field>
+      </div>
+      <p className="-mt-3 text-xs text-muted-foreground">
+        Add a coupon to record what you actually paid (price − coupon +
+        rounding). Leave blank if none.
+      </p>
+
+      <div className="grid grid-cols-2 gap-3">
         <Field label="Pack type">
           {(p) => (
             <Dropdown

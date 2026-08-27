@@ -38,6 +38,7 @@ type PurchaseRow = {
   pack_size_g_at_purchase: number | null;
   purchased_at: string;
   notes: string | null;
+  order_id: string | null;
   product_variant: VariantInfo & {
     product: { id: string; canonical_name: string; category: string | null };
   };
@@ -47,6 +48,14 @@ type PurchaseRow = {
     chain: string | null;
     address: string | null;
   };
+};
+
+type OrderSummary = {
+  id: string;
+  subtotal_myr: number;
+  discount_myr: number;
+  rounding_myr: number;
+  total_myr: number;
 };
 
 type PriceEntryListing = {
@@ -84,7 +93,7 @@ export default async function PurchaseDetailPage({
   const purchaseQ = await supabase
     .from("purchases")
     .select(
-      `id, price_paid_myr, qty, pack_size_g_at_purchase, purchased_at, notes,
+      `id, price_paid_myr, qty, pack_size_g_at_purchase, purchased_at, notes, order_id,
        product_variant:product_variants!inner (
          id, brand, origin_country, pack_type, pack_size_g,
          product:products!inner ( id, canonical_name, category )
@@ -100,6 +109,18 @@ export default async function PurchaseDetailPage({
   }
   if (!purchaseQ.data) notFound();
   const purchase = purchaseQ.data;
+
+  // If this purchase is part of an order (receipt), load the order summary.
+  let order: OrderSummary | null = null;
+  if (purchase.order_id) {
+    const orderQ = await supabase
+      .from("purchase_orders")
+      .select("id, subtotal_myr, discount_myr, rounding_myr, total_myr")
+      .eq("id", purchase.order_id)
+      .maybeSingle()
+      .returns<OrderSummary>();
+    if (!orderQ.error) order = orderQ.data;
+  }
   const productId = purchase.product_variant.product.id;
   const variantSelect = "id, brand, origin_country, pack_type, pack_size_g";
 
@@ -179,6 +200,48 @@ export default async function PurchaseDetailPage({
       </header>
 
       <PurchaseHero purchase={purchase} verdict={verdict} />
+
+      {order && (order.discount_myr > 0 || Number(order.rounding_myr) !== 0) && (
+        <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-foreground">
+            Part of a receipt
+          </h2>
+          <dl className="mt-2 space-y-1 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Subtotal</dt>
+              <dd className="tabular-nums text-foreground">
+                {myr.format(Number(order.subtotal_myr))}
+              </dd>
+            </div>
+            {order.discount_myr > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Coupon / discount</dt>
+                <dd className="tabular-nums text-primary">
+                  −{myr.format(Number(order.discount_myr))}
+                </dd>
+              </div>
+            )}
+            {Number(order.rounding_myr) !== 0 && (
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Rounding</dt>
+                <dd className="tabular-nums text-foreground">
+                  {myr.format(Number(order.rounding_myr))}
+                </dd>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-border/60 pt-1 mt-1">
+              <dt className="font-medium text-foreground">Total paid</dt>
+              <dd className="tabular-nums font-semibold text-foreground">
+                {myr.format(Number(order.total_myr))}
+              </dd>
+            </div>
+          </dl>
+          <p className="mt-2 text-xs text-muted-foreground">
+            This is one item from a receipt. The total above covers the whole
+            receipt.
+          </p>
+        </section>
+      )}
 
       {photos.length > 0 && <PhotoGrid photos={photos} />}
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils/cn";
-import { computeTotals, type SpendPurchase } from "@/lib/analytics/spending";
+import { computeTotals, purchaseToItem, type SpendItem } from "@/lib/analytics/spending";
 
 const myr = new Intl.NumberFormat("en-MY", {
   style: "currency",
@@ -35,6 +35,7 @@ type RecentPurchaseRow = {
   price_paid_myr: number;
   qty: number;
   purchased_at: string;
+  order_id: string | null;
   product_variant: RecentVariant | null;
   store: { name: string; chain: string | null } | null;
 };
@@ -162,7 +163,7 @@ export default async function HomePage() {
     user?.email?.split("@")[0] ??
     "there";
 
-  const [pricesRes, purchasesRes] = await Promise.all([
+  const [pricesRes, purchasesRes, ordersRes] = await Promise.all([
     supabase
       .from("price_entries")
       .select(
@@ -179,7 +180,7 @@ export default async function HomePage() {
     supabase
       .from("purchases")
       .select(
-        `id, price_paid_myr, qty, purchased_at,
+        `id, price_paid_myr, qty, purchased_at, order_id,
          product_variant:product_variants!inner (
            brand, origin_country, pack_type, pack_size_g,
            product:products!inner ( canonical_name )
@@ -188,19 +189,34 @@ export default async function HomePage() {
       )
       .order("purchased_at", { ascending: false })
       .returns<RecentPurchaseRow[]>(),
+    supabase
+      .from("purchase_orders")
+      .select("total_myr, purchased_at")
+      .returns<{ total_myr: number; purchased_at: string }[]>(),
   ]);
 
   const recentPrices = pricesRes.data ?? [];
   const allPurchases = purchasesRes.data ?? [];
+  const allOrders = ordersRes.data ?? [];
   const recentPurchases = allPurchases.slice(0, 3);
 
-  const monthTotal = computeTotals(
-    allPurchases.map<SpendPurchase>((p) => ({
-      purchasedAt: p.purchased_at,
-      pricePaidMyr: Number(p.price_paid_myr),
-      qty: Number(p.qty),
+  // Month total = order totals (coupon-aware) + purchases not in an order.
+  const spendItems: SpendItem[] = [
+    ...allOrders.map((o) => ({
+      purchasedAt: o.purchased_at,
+      amount: Number(o.total_myr),
     })),
-  ).month;
+    ...allPurchases
+      .filter((p) => p.order_id == null)
+      .map((p) =>
+        purchaseToItem({
+          purchasedAt: p.purchased_at,
+          pricePaidMyr: Number(p.price_paid_myr),
+          qty: Number(p.qty),
+        }),
+      ),
+  ];
+  const monthTotal = computeTotals(spendItems).month;
 
   return (
     <div className="space-y-10">
@@ -210,6 +226,43 @@ export default async function HomePage() {
           {greetingName} <span aria-hidden="true">👋</span>
         </h1>
       </header>
+
+      {/* Primary quick actions — the two things you do most */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Link
+          href="/add/purchase"
+          className="group flex items-center gap-3 rounded-xl border border-accent/40 bg-accent-soft/40 p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-accent-soft text-accent-soft-foreground shrink-0">
+            {CartIcon}
+          </span>
+          <span className="min-w-0">
+            <span className="block font-semibold text-foreground">
+              Record a purchase
+            </span>
+            <span className="block text-xs text-muted-foreground mt-0.5">
+              Something you bought — tracks your spending.
+            </span>
+          </span>
+        </Link>
+
+        <Link
+          href="/add/price"
+          className="group flex items-center gap-3 rounded-xl border border-primary/40 bg-primary-soft/40 p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-primary-soft text-primary-soft-foreground shrink-0">
+            {PlusIcon}
+          </span>
+          <span className="min-w-0">
+            <span className="block font-semibold text-foreground">
+              Record a price
+            </span>
+            <span className="block text-xs text-muted-foreground mt-0.5">
+              A price you spotted — for future comparison.
+            </span>
+          </span>
+        </Link>
+      </div>
 
       {/* ===================== PRICES ===================== */}
       <section className="space-y-4">

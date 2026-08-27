@@ -1,17 +1,38 @@
 // Pure spending-analytics helpers. No I/O, no framework — easy to unit test.
 //
-// A "spend amount" for a purchase is price_paid_myr * qty. Dates are handled in
-// the caller's local time by passing a timezone-offset-aware Date; we bucket by
-// the calendar day/month of the given Date instances.
+// A "spend item" is a pre-computed amount at a point in time. Callers decide
+// how the amount is derived: an order's total_myr (coupon-aware) or, for a
+// standalone purchase not attached to an order, price_paid_myr * qty. Dates are
+// bucketed by the calendar day/month of the given Date instances.
 
-export type SpendPurchase = {
-  /** ISO timestamp string (purchased_at). */
+/** Generic spend event: an amount at a timestamp. */
+export type SpendItem = {
+  /** ISO timestamp string. */
   purchasedAt: string;
-  /** Price paid for the line (per unit). */
+  /** Amount spent (already coupon-adjusted where applicable). */
+  amount: number;
+};
+
+/**
+ * Back-compat shape for a standalone purchase. Convert with
+ * {@link purchaseToItem} to feed the analytics helpers.
+ */
+export type SpendPurchase = {
+  purchasedAt: string;
   pricePaidMyr: number;
-  /** Quantity; defaults to 1 when not finite. */
   qty: number;
 };
+
+/** Turn a standalone purchase into a SpendItem (price * qty). */
+export function purchaseToItem(p: SpendPurchase): SpendItem {
+  const price = Number(p.pricePaidMyr);
+  const qtyRaw = Number(p.qty);
+  const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? qtyRaw : 1;
+  return {
+    purchasedAt: p.purchasedAt,
+    amount: Number.isFinite(price) ? price * qty : 0,
+  };
+}
 
 export type Totals = {
   today: number;
@@ -29,11 +50,9 @@ export type SeriesPoint = {
   amount: number;
 };
 
-function lineTotal(p: SpendPurchase): number {
-  const price = Number(p.pricePaidMyr);
-  const qtyRaw = Number(p.qty);
-  const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? qtyRaw : 1;
-  return Number.isFinite(price) ? price * qty : 0;
+function lineTotal(p: SpendItem): number {
+  const amt = Number(p.amount);
+  return Number.isFinite(amt) ? amt : 0;
 }
 
 function sameDay(a: Date, b: Date): boolean {
@@ -46,11 +65,11 @@ function sameDay(a: Date, b: Date): boolean {
 
 /** Totals for today, this month, this year, and all-time relative to `now`. */
 export function computeTotals(
-  purchases: SpendPurchase[],
+  items: SpendItem[],
   now: Date = new Date(),
 ): Totals {
   const totals: Totals = { today: 0, month: 0, year: 0, all: 0 };
-  for (const p of purchases) {
+  for (const p of items) {
     const d = new Date(p.purchasedAt);
     if (Number.isNaN(d.getTime())) continue;
     const amt = lineTotal(p);
@@ -73,7 +92,7 @@ const MONTH_LABELS = [
 
 /** Daily spend for the calendar month containing `now` (one point per day). */
 export function dailySeriesForMonth(
-  purchases: SpendPurchase[],
+  items: SpendItem[],
   now: Date = new Date(),
 ): SeriesPoint[] {
   const year = now.getFullYear();
@@ -81,7 +100,7 @@ export function dailySeriesForMonth(
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const buckets = new Array<number>(daysInMonth).fill(0);
-  for (const p of purchases) {
+  for (const p of items) {
     const d = new Date(p.purchasedAt);
     if (Number.isNaN(d.getTime())) continue;
     if (d.getFullYear() !== year || d.getMonth() !== month) continue;
@@ -98,12 +117,12 @@ export function dailySeriesForMonth(
 
 /** Monthly spend for the calendar year containing `now` (12 points). */
 export function monthlySeriesForYear(
-  purchases: SpendPurchase[],
+  items: SpendItem[],
   now: Date = new Date(),
 ): SeriesPoint[] {
   const year = now.getFullYear();
   const buckets = new Array<number>(12).fill(0);
-  for (const p of purchases) {
+  for (const p of items) {
     const d = new Date(p.purchasedAt);
     if (Number.isNaN(d.getTime())) continue;
     if (d.getFullYear() !== year) continue;

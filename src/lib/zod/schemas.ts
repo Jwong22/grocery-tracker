@@ -164,6 +164,11 @@ export const createPurchaseSchema = z.object({
       (n) => Number.isFinite(n) && n >= 0,
       "Price must be a number ≥ 0",
     ),
+  discount_myr: optionalNumber.refine(
+    (v) => v === null || v >= 0,
+    "Discount must be ≥ 0",
+  ),
+  rounding_myr: optionalNumber,
   qty: z
     .union([z.string(), z.number()])
     .optional()

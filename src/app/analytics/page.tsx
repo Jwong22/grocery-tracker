@@ -3,7 +3,8 @@ import {
   computeTotals,
   dailySeriesForMonth,
   monthlySeriesForYear,
-  type SpendPurchase,
+  purchaseToItem,
+  type SpendItem,
 } from "@/lib/analytics/spending";
 import { BarChart } from "@/components/charts/BarChart";
 import {
@@ -29,6 +30,12 @@ type PurchaseRow = {
   price_paid_myr: number;
   qty: number;
   purchased_at: string;
+  order_id: string | null;
+};
+
+type OrderRow = {
+  total_myr: number;
+  purchased_at: string;
 };
 
 export default async function AnalyticsPage() {
@@ -38,12 +45,20 @@ export default async function AnalyticsPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
-    .from("purchases")
-    .select("price_paid_myr, qty, purchased_at")
-    .order("purchased_at", { ascending: false })
-    .returns<PurchaseRow[]>();
+  // Spending = order totals (coupon-aware) + standalone purchases not in an order.
+  const [ordersRes, purchasesRes] = await Promise.all([
+    supabase
+      .from("purchase_orders")
+      .select("total_myr, purchased_at")
+      .returns<OrderRow[]>(),
+    supabase
+      .from("purchases")
+      .select("price_paid_myr, qty, purchased_at, order_id")
+      .is("order_id", null)
+      .returns<PurchaseRow[]>(),
+  ]);
 
+  const error = ordersRes.error ?? purchasesRes.error;
   if (error) {
     return (
       <div className="space-y-3">
@@ -55,16 +70,25 @@ export default async function AnalyticsPage() {
     );
   }
 
-  const purchases: SpendPurchase[] = (data ?? []).map((p) => ({
-    purchasedAt: p.purchased_at,
-    pricePaidMyr: Number(p.price_paid_myr),
-    qty: Number(p.qty),
+  const orderItems: SpendItem[] = (ordersRes.data ?? []).map((o) => ({
+    purchasedAt: o.purchased_at,
+    amount: Number(o.total_myr),
   }));
+  const looseItems: SpendItem[] = (purchasesRes.data ?? []).map((p) =>
+    purchaseToItem({
+      purchasedAt: p.purchased_at,
+      pricePaidMyr: Number(p.price_paid_myr),
+      qty: Number(p.qty),
+    }),
+  );
+  const items: SpendItem[] = [...orderItems, ...looseItems];
 
   const now = new Date();
-  const totals = computeTotals(purchases, now);
-  const daily = dailySeriesForMonth(purchases, now);
-  const monthly = monthlySeriesForYear(purchases, now);
+  const totals = computeTotals(items, now);
+  const daily = dailySeriesForMonth(items, now);
+  const monthly = monthlySeriesForYear(items, now);
+
+  const hasAny = items.length > 0;
 
   const monthName = MONTH_NAMES[now.getMonth()];
   const year = now.getFullYear();
@@ -116,7 +140,7 @@ export default async function AnalyticsPage() {
         </CardContent>
       </Card>
 
-      {purchases.length === 0 && (
+      {!hasAny && (
         <p className="text-sm text-muted-foreground">
           Nothing logged yet. Add one from{" "}
           <a className="text-primary hover:underline" href="/add/purchase">
