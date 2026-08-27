@@ -48,7 +48,7 @@ export async function updateStore(
     };
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("stores")
     .update({
       name: parsed.data.name,
@@ -59,10 +59,24 @@ export async function updateStore(
       lat: parsed.data.lat,
       lng: parsed.data.lng,
     })
-    .eq("id", storeId);
+    .eq("id", storeId)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     return { ok: false, message: error.message };
+  }
+
+  // A zero-row update means RLS blocked it (e.g. you don't own this store).
+  // Supabase does not raise an error in that case, so guard against a false
+  // "saved" that silently reverts to the original value on reload.
+  if (!updated) {
+    return {
+      ok: false,
+      message:
+        "Couldn't save — you may not have permission to edit this store " +
+        "(it was created by someone else). Apply migration 0005 to allow shared edits.",
+    };
   }
 
   revalidatePath("/search");
