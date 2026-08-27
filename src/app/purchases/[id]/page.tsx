@@ -356,34 +356,34 @@ function PurchaseHero({
       className={`rounded-xl border ${tone} p-5 shadow-sm`}
       aria-label="Your purchase"
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            You paid
-          </div>
-          <div className="mt-2 text-3xl font-semibold text-foreground tabular-nums">
-            {myr.format(Number(purchase.price_paid_myr))}
-          </div>
-          {Number(purchase.qty) !== 1 && (
-            <div className="text-xs text-muted-foreground mt-0.5">
-              ×{Number(purchase.qty)} purchased
-            </div>
-          )}
+      <div className="flex items-start justify-between gap-3">
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          You paid
         </div>
-        <div className="text-right shrink-0">
-          <div className="text-sm font-medium text-foreground">
-            {purchase.store.name}
-          </div>
-          {purchase.store.chain && (
-            <div className="text-xs text-muted-foreground">
-              {purchase.store.chain}
-            </div>
-          )}
-          <div className="text-xs text-muted-foreground mt-1">
-            {dateFmt.format(new Date(purchase.purchased_at))}
-          </div>
+        <div className="text-xs text-muted-foreground shrink-0 text-right">
+          {dateFmt.format(new Date(purchase.purchased_at))}
         </div>
       </div>
+
+      <div className="mt-1.5">
+        <div className="text-base font-medium text-foreground break-words">
+          {purchase.store.name}
+        </div>
+        {purchase.store.chain && (
+          <div className="text-xs text-muted-foreground">
+            {purchase.store.chain}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-2 text-3xl font-semibold text-foreground tabular-nums">
+        {myr.format(Number(purchase.price_paid_myr))}
+      </div>
+      {Number(purchase.qty) !== 1 && (
+        <div className="text-xs text-muted-foreground mt-0.5">
+          ×{Number(purchase.qty)} purchased
+        </div>
+      )}
 
       {purchase.notes && (
         <p className="mt-3 text-sm text-muted-foreground whitespace-pre-line border-t border-border/60 pt-3">
