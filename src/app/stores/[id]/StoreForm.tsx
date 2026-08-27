@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toaster";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -39,6 +40,7 @@ type Props = {
 export function StoreForm({ storeId, defaults }: Props) {
   const action = updateStore.bind(null, storeId);
   const [state, formAction, pending] = useActionState(action, initialState);
+  const router = useRouter();
   const { success, error: toastError } = useToast();
   const handledRef = useRef<StoreFormState | null>(null);
 
@@ -47,11 +49,16 @@ export function StoreForm({ storeId, defaults }: Props) {
     if (state.ok && state.message) {
       handledRef.current = state;
       success(state.message);
+      // Return to the previous page after a short beat so the toast is seen.
+      const t = setTimeout(() => {
+        router.back();
+      }, 700);
+      return () => clearTimeout(t);
     } else if (!state.ok && state.message) {
       handledRef.current = state;
       toastError(state.message);
     }
-  }, [state, success, toastError]);
+  }, [state, success, toastError, router]);
 
   const [address, setAddress] = useState(defaults.address ?? "");
   const [lat, setLat] = useState<number | null>(defaults.lat);
