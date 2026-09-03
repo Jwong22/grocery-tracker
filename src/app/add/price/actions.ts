@@ -241,11 +241,38 @@ export async function submitPriceEntry(
     return { ok: false, message: insertErr.message };
   }
 
-  // If user also bought this, create a purchase record
+  // If user also bought this, create a purchase record (+ an order when a
+  // coupon/discount or rounding applies, so the actual amount paid is tracked).
   const alsoBought = formData.get("also_bought") === "on";
   if (alsoBought) {
     const qty = Number(formData.get("qty") ?? "1") || 1;
-    await supabase.from("purchases").insert({
+    const discount = Math.max(0, Number(formData.get("discount_myr") ?? "0") || 0);
+    const roundingRaw = Number(formData.get("rounding_myr") ?? "0");
+    const rounding = Number.isFinite(roundingRaw) ? roundingRaw : 0;
+    const subtotal = v.price_myr * qty;
+
+    let orderId: string | null = null;
+    if (discount > 0 || rounding !== 0) {
+      const total = Math.max(0, subtotal - discount + rounding);
+      const { data: order, error: orderErr } = await supabase
+        .from("purchase_orders")
+        .insert({
+          store_id: v.store_id,
+          purchased_at: v.observed_at,
+          subtotal_myr: subtotal,
+          discount_myr: discount,
+          rounding_myr: rounding,
+          total_myr: total,
+          notes: v.notes,
+          evidence_paths: evidencePaths,
+        })
+        .select("id")
+        .single();
+      if (orderErr) return { ok: false, message: orderErr.message };
+      orderId = order.id;
+    }
+
+    const { error: purchaseErr } = await supabase.from("purchases").insert({
       product_variant_id: variant.id,
       store_id: v.store_id,
       price_paid_myr: v.price_myr,
@@ -254,11 +281,15 @@ export async function submitPriceEntry(
       purchased_at: v.observed_at,
       notes: v.notes,
       evidence_paths: evidencePaths,
+      order_id: orderId,
     });
+    if (purchaseErr) return { ok: false, message: purchaseErr.message };
   }
 
   revalidatePath("/search");
   revalidatePath("/history");
+  revalidatePath("/analytics");
+  revalidatePath("/");
   const note =
     uploadErrors.length > 0
       ? ` (${uploadErrors.length} attachment${uploadErrors.length === 1 ? "" : "s"} failed)`

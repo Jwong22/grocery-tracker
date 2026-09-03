@@ -16,11 +16,10 @@ export async function TopNav() {
 
   const links = [
     { href: "/", label: "Home" },
+    { href: "/add/price", label: "+ Add entry" },
     { href: "/search", label: "Search", group: "Prices" },
     { href: "/prices", label: "All prices", group: "Prices" },
-    { href: "/add/price", label: "+ Price", group: "Prices" },
     { href: "/history", label: "Spending", group: "Spending" },
-    { href: "/add/purchase", label: "+ Purchase", group: "Spending" },
     { href: "/stores", label: "Stores", group: "More" },
     { href: "/settings", label: "Settings", group: "More" },
   ];

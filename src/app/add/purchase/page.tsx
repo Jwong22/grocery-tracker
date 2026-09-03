@@ -1,18 +1,7 @@
-import { PurchaseForm } from "./PurchaseForm";
+import { redirect } from "next/navigation";
 
-export default function AddPurchasePage() {
-  return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Log a purchase
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Record what you bought. We&rsquo;ll compare it against the shared
-          price database to flag whether it was the cheapest available.
-        </p>
-      </header>
-      <PurchaseForm />
-    </div>
-  );
+// Adding a purchase is now part of the unified "Add entry" form: record a
+// price and tick "I bought this" to also log it as a purchase.
+export default function AddPurchaseRedirect() {
+  redirect("/add/price");
 }

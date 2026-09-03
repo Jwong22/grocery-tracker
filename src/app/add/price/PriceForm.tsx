@@ -251,28 +251,69 @@ export function PriceForm() {
           </div>
         </label>
         {alsoBought && (
-          <Field label="Quantity" error={state.errors?.qty?.[0]}>
-            {(p) => (
-              <Input
-                {...p}
-                name="qty"
-                type="number"
-                step="1"
-                min="1"
-                inputMode="numeric"
-                defaultValue="1"
-                placeholder="1"
-                invalid={Boolean(state.errors?.qty?.[0])}
-              />
-            )}
-          </Field>
+          <div className="space-y-3">
+            <Field label="Quantity" error={state.errors?.qty?.[0]}>
+              {(p) => (
+                <Input
+                  {...p}
+                  name="qty"
+                  type="number"
+                  step="1"
+                  min="1"
+                  inputMode="numeric"
+                  defaultValue="1"
+                  placeholder="1"
+                  invalid={Boolean(state.errors?.qty?.[0])}
+                />
+              )}
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field
+                label="Coupon / discount (MYR)"
+                error={state.errors?.discount_myr?.[0]}
+              >
+                {(p) => (
+                  <Input
+                    {...p}
+                    name="discount_myr"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    inputMode="decimal"
+                    placeholder="optional"
+                    invalid={Boolean(state.errors?.discount_myr?.[0])}
+                  />
+                )}
+              </Field>
+              <Field
+                label="Rounding adj. (MYR)"
+                error={state.errors?.rounding_myr?.[0]}
+              >
+                {(p) => (
+                  <Input
+                    {...p}
+                    name="rounding_myr"
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder="e.g. 0.02"
+                    invalid={Boolean(state.errors?.rounding_myr?.[0])}
+                  />
+                )}
+              </Field>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Records what you actually paid (price × qty − coupon + rounding).
+              Leave blank if none.
+            </p>
+          </div>
         )}
       </div>
 
       <EvidenceUpload />
 
       <Button type="submit" size="lg" block disabled={pending}>
-        {pending ? "Saving…" : "Save price"}
+        {pending ? "Saving…" : alsoBought ? "Save price & purchase" : "Save entry"}
       </Button>
     </form>
   );

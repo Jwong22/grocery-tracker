@@ -88,14 +88,6 @@ const ChartIcon = (
     <rect x="17" y="13" width="3" height="4" />
   </svg>
 );
-const CartIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-    <path d="M3 3h2l2.7 12.3a2 2 0 0 0 2 1.7h7.7a2 2 0 0 0 2-1.6L21 8H6" />
-    <circle cx="9" cy="20" r="1.5" />
-    <circle cx="18" cy="20" r="1.5" />
-  </svg>
-);
-
 const priceTiles: Tile[] = [
   {
     href: "/search",
@@ -113,8 +105,8 @@ const priceTiles: Tile[] = [
   },
   {
     href: "/add/price",
-    title: "Add a price",
-    desc: "Record a price you spotted — manual, photo, or bulk import.",
+    title: "Add entry",
+    desc: "Record a price — tick \u201cI bought this\u201d to also log a purchase.",
     tone: "info",
     icon: PlusIcon,
   },
@@ -127,13 +119,6 @@ const spendingTiles: Tile[] = [
     desc: "Totals, charts, and every purchase in one place.",
     tone: "violet",
     icon: ChartIcon,
-  },
-  {
-    href: "/add/purchase",
-    title: "Log a purchase",
-    desc: "Record what you bought — we'll flag the cheapest deal.",
-    tone: "accent",
-    icon: CartIcon,
   },
 ];
 
@@ -213,25 +198,8 @@ export default async function HomePage() {
         </h1>
       </header>
 
-      {/* Primary quick actions — the two things you do most */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Link
-          href="/add/purchase"
-          className="group flex items-center gap-3 rounded-xl border border-accent/40 bg-accent-soft/40 p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-accent-soft text-accent-soft-foreground shrink-0">
-            {CartIcon}
-          </span>
-          <span className="min-w-0">
-            <span className="block font-semibold text-foreground">
-              Record a purchase
-            </span>
-            <span className="block text-xs text-muted-foreground mt-0.5">
-              Something you bought — tracks your spending.
-            </span>
-          </span>
-        </Link>
-
+      {/* Primary quick action — one place to add an entry */}
+      <div>
         <Link
           href="/add/price"
           className="group flex items-center gap-3 rounded-xl border border-primary/40 bg-primary-soft/40 p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -241,10 +209,11 @@ export default async function HomePage() {
           </span>
           <span className="min-w-0">
             <span className="block font-semibold text-foreground">
-              Record a price
+              Add entry
             </span>
             <span className="block text-xs text-muted-foreground mt-0.5">
-              A price you spotted — for future comparison.
+              Record a price — tick &ldquo;I bought this&rdquo; to also log the
+              purchase.
             </span>
           </span>
         </Link>
@@ -329,10 +298,10 @@ export default async function HomePage() {
         {recentPurchases.length === 0 ? (
           <EmptyHint>
             Nothing bought yet. Start with{" "}
-            <a className="text-primary hover:underline" href="/add/purchase">
-              Log a purchase
-            </a>
-            .
+            <a className="text-primary hover:underline" href="/add/price">
+              Add entry
+            </a>{" "}
+            and tick &ldquo;I bought this&rdquo;.
           </EmptyHint>
         ) : (
           <ul className="space-y-2.5">
