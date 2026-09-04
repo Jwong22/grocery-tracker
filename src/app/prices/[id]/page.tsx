@@ -37,6 +37,7 @@ type PriceEntryRow = {
   observed_at: string;
   pack_size_g_observed: number | null;
   unit_price_per_100g: number | null;
+  qty_observed: number | null;
   contributor_id: string;
   notes: string | null;
   product_variant: VariantInfo & {
@@ -112,7 +113,7 @@ export default async function PriceDetailPage({
     .from("price_entries")
     .select(
       `id, price_myr, observed_at, pack_size_g_observed, unit_price_per_100g,
-       contributor_id, notes,
+       qty_observed, contributor_id, notes,
        product_variant:product_variants!inner (
          id, brand, origin_country, pack_type, pack_size_g,
          product:products!inner ( id, canonical_name, category )
@@ -366,6 +367,11 @@ function PriceHero({
 
       <div className="mt-2 text-3xl font-semibold text-foreground tabular-nums">
         {myr.format(Number(entry.price_myr))}
+        {entry.qty_observed != null && Number(entry.qty_observed) !== 1 && (
+          <span className="ml-2 text-base font-normal text-muted-foreground">
+            for {Number(entry.qty_observed)} units
+          </span>
+        )}
       </div>
       {entry.unit_price_per_100g !== null && (
         <div className="text-xs text-muted-foreground tabular-nums mt-0.5">

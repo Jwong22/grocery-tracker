@@ -174,6 +174,26 @@ export function PriceForm() {
         </Field>
       </div>
 
+      <Field
+        label="Quantity"
+        hint="How many units this price covers (e.g. a 2-box promo pack). Default 1."
+        error={state.errors?.qty_observed?.[0]}
+      >
+        {(p) => (
+          <Input
+            {...p}
+            name="qty_observed"
+            type="number"
+            step="1"
+            min="1"
+            inputMode="numeric"
+            defaultValue="1"
+            placeholder="1"
+            invalid={Boolean(state.errors?.qty_observed?.[0])}
+          />
+        )}
+      </Field>
+
       <div className="grid grid-cols-2 gap-3">
         <Field label="Pack type">
           {(p) => (
@@ -252,7 +272,7 @@ export function PriceForm() {
         </label>
         {alsoBought && (
           <div className="space-y-3">
-            <Field label="Quantity" error={state.errors?.qty?.[0]}>
+            <Field label="Quantity bought" error={state.errors?.qty?.[0]}>
               {(p) => (
                 <Input
                   {...p}

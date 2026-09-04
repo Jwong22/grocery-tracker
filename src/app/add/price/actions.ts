@@ -194,7 +194,6 @@ export async function submitPriceEntry(
     observed_at: formData.get("observed_at") || undefined,
     notes: formData.get("notes"),
   };
-
   const parsed = createPriceEntrySchema.safeParse(raw);
   if (!parsed.success) {
     const flat = parsed.error.flatten();
@@ -226,11 +225,16 @@ export async function submitPriceEntry(
       ? await uploadEvidenceFiles(supabase, user.id, evidenceFiles)
       : { paths: [] as string[], errors: [] as string[] };
 
+  const qtyObservedRaw = Number(formData.get("qty_observed") ?? "1");
+  const qtyObserved =
+    Number.isFinite(qtyObservedRaw) && qtyObservedRaw > 0 ? qtyObservedRaw : 1;
+
   const { error: insertErr } = await supabase.from("price_entries").insert({
     product_variant_id: variant.id,
     store_id: v.store_id,
     price_myr: v.price_myr,
     pack_size_g_observed: v.pack_size_g,
+    qty_observed: qtyObserved,
     observed_at: v.observed_at,
     source: "manual",
     notes: v.notes,
