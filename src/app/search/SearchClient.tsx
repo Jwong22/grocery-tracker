@@ -101,6 +101,44 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
     return enriched.sort((a, b) => a.hit.priceMyr - b.hit.priceMyr);
   }, [data, sort, travel]);
 
+  // Travel-aware recommendation: is the absolute-cheapest actually worth it
+  // once fuel + time are added? Only meaningful when travel is configured and
+  // the compared results have location estimates.
+  const recommendation = useMemo(() => {
+    if (!travel || ranked.length < 2) return null;
+    const withEstimate = ranked.filter(
+      (r): r is { hit: SearchHit; estimate: TravelEstimate; totalMyr: number } =>
+        r.estimate !== null && r.totalMyr !== null,
+    );
+    if (withEstimate.length < 2) return null;
+
+    const cheapestByPrice = [...withEstimate].sort(
+      (a, b) => a.hit.priceMyr - b.hit.priceMyr,
+    )[0];
+    const bestByTotal = [...withEstimate].sort(
+      (a, b) => a.totalMyr - b.totalMyr,
+    )[0];
+
+    // Same store/entry wins both — the cheapest is also nearest-enough. Simple win.
+    if (cheapestByPrice.hit.entryId === bestByTotal.hit.entryId) {
+      return {
+        sameWinner: true,
+        best: bestByTotal,
+        cheapest: cheapestByPrice,
+        savings: 0,
+      };
+    }
+
+    // The cheapest-by-price costs MORE overall once travel is added.
+    const savings = cheapestByPrice.totalMyr - bestByTotal.totalMyr;
+    return {
+      sameWinner: false,
+      best: bestByTotal,
+      cheapest: cheapestByPrice,
+      savings,
+    };
+  }, [ranked, travel]);
+
   return (
     <div className="space-y-5">
       <div className="space-y-3">
@@ -224,6 +262,43 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
               .
             </>
           )}
+        </div>
+      )}
+
+      {recommendation && !recommendation.sameWinner && recommendation.savings > 0.01 && (
+        <div className="rounded-xl border border-primary/40 bg-primary-soft/30 p-3.5">
+          <div className="flex items-start gap-2.5">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5 shrink-0 text-primary mt-0.5"
+              aria-hidden="true"
+            >
+              <path d="M12 2 4 7v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            <div className="text-sm text-foreground">
+              <span className="font-medium">Best value:</span>{" "}
+              {recommendation.best.hit.store.name} —{" "}
+              {myr.format(recommendation.best.hit.priceMyr)} (
+              {myr.format(recommendation.best.totalMyr)} incl. travel,{" "}
+              {recommendation.best.estimate.oneWayKm.toFixed(1)} km).
+              <div className="text-xs text-muted-foreground mt-1">
+                The cheapest sticker price is{" "}
+                {recommendation.cheapest.hit.store.name} at{" "}
+                {myr.format(recommendation.cheapest.hit.priceMyr)} (
+                {recommendation.cheapest.estimate.oneWayKm.toFixed(1)} km), but
+                with fuel &amp; time it works out to{" "}
+                {myr.format(recommendation.cheapest.totalMyr)} — about{" "}
+                {myr.format(recommendation.savings)} more than going to{" "}
+                {recommendation.best.hit.store.name}.
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
