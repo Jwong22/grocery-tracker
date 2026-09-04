@@ -301,3 +301,128 @@ export async function submitPriceEntry(
   const action = alsoBought ? "Price recorded & purchase logged." : "Price recorded.";
   return { ok: true, message: `${action}${note}` };
 }
+
+export async function updatePriceEntry(
+  entryId: string,
+  _prev: PriceFormState | undefined,
+  formData: FormData,
+): Promise<PriceFormState> {
+  let supabase;
+  try {
+    ({ supabase } = await requireUser());
+  } catch {
+    return { ok: false, message: "Please sign in again." };
+  }
+
+  // Load the existing entry to keep its product + store (store is edited via
+  // its own page, not here).
+  const { data: existing, error: loadErr } = await supabase
+    .from("price_entries")
+    .select(
+      "id, product_variant:product_variants!inner ( product_id )",
+    )
+    .eq("id", entryId)
+    .maybeSingle()
+    .returns<{ id: string; product_variant: { product_id: string } }>();
+  if (loadErr) return { ok: false, message: loadErr.message };
+  if (!existing) return { ok: false, message: "Price entry not found." };
+
+  const raw = {
+    // product_id/store_id come from the existing row; product_id is needed for
+    // schema validation, store_id is not edited here.
+    product_id: existing.product_variant.product_id,
+    store_id: "00000000-0000-0000-0000-000000000000", // placeholder to satisfy schema; not used
+    brand: formData.get("brand"),
+    origin_country: formData.get("origin_country"),
+    pack_type: formData.get("pack_type"),
+    pack_size_g: formData.get("pack_size_g"),
+    price_myr: formData.get("price_myr"),
+    observed_at: formData.get("observed_at") || undefined,
+    notes: formData.get("notes"),
+  };
+
+  const parsed = createPriceEntrySchema.safeParse(raw);
+  if (!parsed.success) {
+    const flat = parsed.error.flatten();
+    return {
+      ok: false,
+      message: "Please fix the highlighted fields.",
+      errors: flat.fieldErrors as Record<string, string[]>,
+    };
+  }
+  const v = parsed.data;
+
+  // Re-resolve the variant for the (possibly changed) brand/origin/pack.
+  const variant = await findOrCreateVariant(supabase, {
+    product_id: v.product_id,
+    brand: v.brand,
+    origin_country: v.origin_country,
+    pack_type: v.pack_type,
+    pack_size_g: v.pack_size_g,
+  });
+  if ("error" in variant) {
+    return { ok: false, message: variant.error };
+  }
+
+  const qtyObservedRaw = Number(formData.get("qty_observed") ?? "1");
+  const qtyObserved =
+    Number.isFinite(qtyObservedRaw) && qtyObservedRaw > 0 ? qtyObservedRaw : 1;
+
+  const { data: updated, error: updErr } = await supabase
+    .from("price_entries")
+    .update({
+      product_variant_id: variant.id,
+      price_myr: v.price_myr,
+      pack_size_g_observed: v.pack_size_g,
+      qty_observed: qtyObserved,
+      observed_at: v.observed_at,
+      notes: v.notes,
+    })
+    .eq("id", entryId)
+    .select("id")
+    .maybeSingle();
+  if (updErr) return { ok: false, message: updErr.message };
+  if (!updated) {
+    return {
+      ok: false,
+      message:
+        "Couldn't save — you may not have permission to edit this entry. " +
+        "Apply migration 0010 to allow shared edits.",
+    };
+  }
+
+  revalidatePath("/search");
+  revalidatePath("/prices");
+  revalidatePath(`/prices/${entryId}`);
+  return { ok: true, message: "Price entry updated." };
+}
+
+export async function deletePriceEntry(
+  entryId: string,
+): Promise<{ ok: boolean; message?: string }> {
+  let supabase;
+  try {
+    ({ supabase } = await requireUser());
+  } catch {
+    return { ok: false, message: "Please sign in again." };
+  }
+
+  const { data: deleted, error } = await supabase
+    .from("price_entries")
+    .delete()
+    .eq("id", entryId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, message: error.message };
+  if (!deleted) {
+    return {
+      ok: false,
+      message:
+        "Couldn't delete — you may not have permission. Apply migration 0010.",
+    };
+  }
+
+  revalidatePath("/search");
+  revalidatePath("/prices");
+  return { ok: true };
+}
