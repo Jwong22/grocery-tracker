@@ -71,7 +71,9 @@ export async function searchCheapest(
 ): Promise<SearchHit[]> {
   const supabase = createClient();
   const term = filters.query.trim();
-  if (term.length < 2) return [];
+  // Empty/short term => browse all recorded prices (no name filter).
+  // 1-char terms are treated as "browse all" too, to avoid noisy partials.
+  const useNameFilter = term.length >= 2;
 
   let q = supabase
     .from("price_entries")
@@ -83,9 +85,12 @@ export async function searchCheapest(
        ),
        store:stores!inner ( id, name, chain, address, lat, lng )`,
     )
-    .ilike("product_variant.product.canonical_name", `%${term}%`)
     .order("price_myr", { ascending: true })
-    .limit(50);
+    .limit(200);
+
+  if (useNameFilter) {
+    q = q.ilike("product_variant.product.canonical_name", `%${term}%`);
+  }
 
   if (filters.packType && filters.packType !== "any") {
     q = q.eq("product_variant.pack_type", filters.packType);

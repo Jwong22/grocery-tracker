@@ -13,7 +13,7 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { href: "/search", label: "Search", icon: SearchIcon },
+  { href: "/analytics", label: "Spending", icon: SpendingIcon },
   { href: "/history", label: "History", icon: HistoryIcon },
   { href: "/add/price", label: "Add", icon: PriceIcon, fab: true },
   { href: "/stores", label: "Stores", icon: StoreIcon },
@@ -76,7 +76,7 @@ export function BottomNavBar() {
   );
 }
 
-function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
+function SpendingIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
@@ -87,8 +87,10 @@ function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.5-3.5" />
+      <path d="M3 3v18h18" />
+      <rect x="7" y="10" width="3" height="7" />
+      <rect x="12" y="6" width="3" height="11" />
+      <rect x="17" y="13" width="3" height="4" />
     </svg>
   );
 }
@@ -105,24 +107,6 @@ function PriceIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeLinejoin="round"
     >
       <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
-function CartIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="9" cy="20" r="1.4" />
-      <circle cx="18" cy="20" r="1.4" />
-      <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 2-1.55L21 8H6" />
     </svg>
   );
 }

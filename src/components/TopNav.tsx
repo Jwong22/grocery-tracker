@@ -17,9 +17,9 @@ export async function TopNav() {
   const links = [
     { href: "/", label: "Home" },
     { href: "/add/price", label: "+ Add entry" },
-    { href: "/search", label: "Search", group: "Prices" },
     { href: "/prices", label: "All prices", group: "Prices" },
-    { href: "/history", label: "Spending", group: "Spending" },
+    { href: "/analytics", label: "Spending", group: "Spending" },
+    { href: "/history", label: "History", group: "Spending" },
     { href: "/stores", label: "Stores", group: "More" },
     { href: "/settings", label: "Settings", group: "More" },
   ];

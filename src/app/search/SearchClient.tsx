@@ -57,7 +57,6 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
   const [sort, setSort] = useState<SortMode>(travel ? "total" : "price");
 
   const debouncedQuery = useDebounce(query.trim(), 300);
-  const enabled = debouncedQuery.length >= 2;
 
   const { data, isFetching, error } = useQuery({
     queryKey: ["search", debouncedQuery, packType, brand.trim(), origin.trim()],
@@ -68,7 +67,6 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
         brand,
         origin,
       }),
-    enabled,
     staleTime: 30_000,
   });
 
@@ -121,7 +119,6 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder='e.g. carrot, "broccoli", milk'
-            autoFocus
             className="h-11 pl-9 text-base"
           />
         </div>
@@ -200,14 +197,8 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
         )}
       </div>
 
-      {!enabled && (
-        <p className="text-sm text-muted-foreground">
-          Type at least 2 characters to search.
-        </p>
-      )}
-
-      {enabled && isFetching && (
-        <p className="text-sm text-muted-foreground">Searching…</p>
+      {isFetching && !data && (
+        <p className="text-sm text-muted-foreground">Loading prices…</p>
       )}
 
       {error && (
@@ -216,17 +207,23 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
         </p>
       )}
 
-      {enabled && ranked.length === 0 && !isFetching && (
+      {ranked.length === 0 && !isFetching && (
         <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No prices yet. Add one from{" "}
-          <a className="text-primary hover:underline" href="/add/price">
-            Record a price
-          </a>
-          .
+          {debouncedQuery.length >= 2 ? (
+            <>No matches for &ldquo;{debouncedQuery}&rdquo;.</>
+          ) : (
+            <>
+              No prices yet. Add one from{" "}
+              <a className="text-primary hover:underline" href="/add/price">
+                Add entry
+              </a>
+              .
+            </>
+          )}
         </div>
       )}
 
-      {enabled && ranked.length > 0 && (
+      {ranked.length > 0 && (
         <ul className="space-y-2.5">
           {ranked.map(({ hit, estimate, totalMyr }, index) => (
             <ResultCard
