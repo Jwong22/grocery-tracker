@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { StoreForm } from "./StoreForm";
+import { getStoreUsage } from "./actions";
 
 type ParentRow = { id: string; name: string; address: string | null };
 
@@ -91,6 +92,7 @@ export default async function EditStorePage({
       )}
       <StoreForm
         storeId={store.id}
+        usage={await getStoreUsage(store.id)}
         defaults={{
           name: store.name,
           chain: store.chain,

@@ -13,8 +13,8 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { href: "/analytics", label: "Spending", icon: SpendingIcon },
   { href: "/history", label: "History", icon: HistoryIcon },
+  { href: "/analytics", label: "Spending", icon: SpendingIcon },
   { href: "/add/price", label: "Add", icon: PriceIcon, fab: true },
   { href: "/stores", label: "Stores", icon: StoreIcon },
   { href: "/settings", label: "Settings", icon: SettingsIcon },

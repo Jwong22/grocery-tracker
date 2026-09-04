@@ -83,3 +83,91 @@ export async function updateStore(
   revalidatePath(`/stores/${storeId}`);
   return { ok: true, message: "Store details saved." };
 }
+
+export type StoreUsage = {
+  prices: number;
+  purchases: number;
+  orders: number;
+  childStores: number;
+  total: number;
+};
+
+/** Count everything that references this store, to decide if it can be deleted. */
+export async function getStoreUsage(storeId: string): Promise<StoreUsage> {
+  const supabase = await createClient();
+
+  const [prices, purchases, orders, children] = await Promise.all([
+    supabase
+      .from("price_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId),
+    supabase
+      .from("purchases")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId),
+    supabase
+      .from("purchase_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId),
+    supabase
+      .from("stores")
+      .select("id", { count: "exact", head: true })
+      .eq("parent_store_id", storeId),
+  ]);
+
+  const p = prices.count ?? 0;
+  const pu = purchases.count ?? 0;
+  const o = orders.count ?? 0;
+  const c = children.count ?? 0;
+  return {
+    prices: p,
+    purchases: pu,
+    orders: o,
+    childStores: c,
+    total: p + pu + o + c,
+  };
+}
+
+export async function deleteStore(
+  storeId: string,
+): Promise<{ ok: boolean; message?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Please sign in again." };
+
+  // Block deletion while the store is still referenced anywhere.
+  const usage = await getStoreUsage(storeId);
+  if (usage.total > 0) {
+    const parts: string[] = [];
+    if (usage.prices) parts.push(`${usage.prices} price${usage.prices === 1 ? "" : "s"}`);
+    if (usage.purchases)
+      parts.push(`${usage.purchases} purchase${usage.purchases === 1 ? "" : "s"}`);
+    if (usage.orders)
+      parts.push(`${usage.orders} order${usage.orders === 1 ? "" : "s"}`);
+    if (usage.childStores)
+      parts.push(`${usage.childStores} sub-store${usage.childStores === 1 ? "" : "s"}`);
+    return {
+      ok: false,
+      message: `Can't delete — still used by ${parts.join(", ")}. Remove or reassign those first.`,
+    };
+  }
+
+  const { data: deleted, error } = await supabase
+    .from("stores")
+    .delete()
+    .eq("id", storeId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, message: error.message };
+  if (!deleted) {
+    return {
+      ok: false,
+      message: "Couldn't delete — you may not have permission.",
+    };
+  }
+
+  revalidatePath("/stores");
+  return { ok: true };
+}

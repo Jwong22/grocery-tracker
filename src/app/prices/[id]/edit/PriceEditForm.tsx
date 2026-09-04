@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toaster";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
@@ -187,53 +188,37 @@ export function PriceEditForm({
       </Button>
 
       <div className="border-t border-border/60 pt-4">
-        {confirmDelete ? (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground flex-1">
-              Delete this price entry?
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setConfirmDelete(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={onDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </Button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmDelete(true)}
-            className="inline-flex items-center gap-1.5 text-sm text-destructive hover:underline"
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          className="inline-flex items-center gap-1.5 text-sm text-destructive hover:underline"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+            aria-hidden="true"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-              aria-hidden="true"
-            >
-              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-              <path d="M10 11v6M14 11v6" />
-            </svg>
-            Delete price entry
-          </button>
-        )}
+            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+            <path d="M10 11v6M14 11v6" />
+          </svg>
+          Delete price entry
+        </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete this price entry?"
+        description="This permanently removes the price entry. This can't be undone."
+        confirmLabel="Delete"
+        busy={deleting}
+        onConfirm={onDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </form>
   );
 }

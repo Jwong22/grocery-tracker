@@ -35,6 +35,8 @@ export type TravelConfig = {
 
 type SortMode = "price" | "total";
 
+const PAGE_SIZE = 20;
+
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
@@ -57,6 +59,8 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
   const [sort, setSort] = useState<SortMode>(travel ? "total" : "price");
 
   const debouncedQuery = useDebounce(query.trim(), 300);
+
+  const viewKey = `${debouncedQuery}|${packType}|${brand.trim()}|${origin.trim()}|${sort}`;
 
   const { data, isFetching, error } = useQuery({
     queryKey: ["search", debouncedQuery, packType, brand.trim(), origin.trim()],
@@ -224,20 +228,59 @@ export function SearchClient({ travel }: { travel: TravelConfig | null }) {
       )}
 
       {ranked.length > 0 && (
-        <ul className="space-y-2.5">
-          {ranked.map(({ hit, estimate, totalMyr }, index) => (
-            <ResultCard
-              key={hit.entryId}
-              hit={hit}
-              estimate={estimate}
-              totalMyr={totalMyr}
-              showTotal={sort === "total" && travel !== null}
-              isCheapest={index === 0}
-            />
-          ))}
-        </ul>
+        <ResultsList
+          key={viewKey}
+          ranked={ranked}
+          showTotal={sort === "total" && travel !== null}
+        />
       )}
     </div>
+  );
+}
+
+type RankedItem = {
+  hit: SearchHit;
+  estimate: TravelEstimate | null;
+  totalMyr: number | null;
+};
+
+function ResultsList({
+  ranked,
+  showTotal,
+}: {
+  ranked: RankedItem[];
+  showTotal: boolean;
+}) {
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  return (
+    <>
+      <ul className="space-y-2.5">
+        {ranked.slice(0, visible).map(({ hit, estimate, totalMyr }, index) => (
+          <ResultCard
+            key={hit.entryId}
+            hit={hit}
+            estimate={estimate}
+            totalMyr={totalMyr}
+            showTotal={showTotal}
+            isCheapest={index === 0}
+          />
+        ))}
+      </ul>
+      {visible < ranked.length && (
+        <div className="pt-3 text-center">
+          <button
+            type="button"
+            onClick={() => setVisible((v) => v + PAGE_SIZE)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            Show more
+            <span className="text-xs text-muted-foreground">
+              ({ranked.length - visible} more)
+            </span>
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 

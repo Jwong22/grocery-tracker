@@ -1,9 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toaster";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
@@ -11,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Combobox, type ComboboxItem } from "@/components/Combobox";
 import { PlaceSearch } from "@/components/map/PlaceSearch";
 import { searchTopLevelStores } from "@/lib/queries/catalog";
-import { updateStore, type StoreFormState } from "./actions";
+import { updateStore, deleteStore, type StoreFormState, type StoreUsage } from "./actions";
 
 const LeafletMap = dynamic(() => import("@/components/map/LeafletMap"), {
   ssr: false,
@@ -26,6 +27,7 @@ const initialState: StoreFormState = { ok: false };
 
 type Props = {
   storeId: string;
+  usage: StoreUsage;
   defaults: {
     name: string;
     chain: string | null;
@@ -37,12 +39,37 @@ type Props = {
   };
 };
 
-export function StoreForm({ storeId, defaults }: Props) {
+export function StoreForm({ storeId, usage, defaults }: Props) {
   const action = updateStore.bind(null, storeId);
   const [state, formAction, pending] = useActionState(action, initialState);
   const router = useRouter();
   const { success, error: toastError } = useToast();
   const handledRef = useRef<StoreFormState | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, startDelete] = useTransition();
+
+  const inUse = usage.total > 0;
+  const usageParts: string[] = [];
+  if (usage.prices) usageParts.push(`${usage.prices} price${usage.prices === 1 ? "" : "s"}`);
+  if (usage.purchases)
+    usageParts.push(`${usage.purchases} purchase${usage.purchases === 1 ? "" : "s"}`);
+  if (usage.orders) usageParts.push(`${usage.orders} order${usage.orders === 1 ? "" : "s"}`);
+  if (usage.childStores)
+    usageParts.push(`${usage.childStores} sub-store${usage.childStores === 1 ? "" : "s"}`);
+  const usageText = usageParts.join(", ");
+
+  const onDelete = () => {
+    startDelete(async () => {
+      const res = await deleteStore(storeId);
+      if (res.ok) {
+        success("Store deleted.");
+        router.push("/stores");
+      } else {
+        toastError(res.message ?? "Couldn't delete store.");
+        setConfirmDelete(false);
+      }
+    });
+  };
 
   useEffect(() => {
     if (handledRef.current === state) return;
@@ -291,6 +318,50 @@ export function StoreForm({ storeId, defaults }: Props) {
       <Button type="submit" size="lg" block disabled={pending}>
         {pending ? "Saving…" : "Save store"}
       </Button>
+
+      <div className="border-t border-border/60 pt-4">
+        {inUse ? (
+          <p className="text-xs text-muted-foreground">
+            This location is currently used by {usageText}. Remove or reassign
+            those before it can be deleted.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Not used by any prices or purchases — safe to delete.
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          disabled={inUse || deleting}
+          className="mt-2 inline-flex items-center gap-1.5 text-sm text-destructive hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+            <path d="M10 11v6M14 11v6" />
+          </svg>
+          Delete store
+        </button>
+      </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete this store?"
+        description="This permanently removes the store. This can't be undone."
+        confirmLabel="Delete store"
+        busy={deleting}
+        onConfirm={onDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </form>
   );
 }
