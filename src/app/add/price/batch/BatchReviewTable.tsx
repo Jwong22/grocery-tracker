@@ -54,23 +54,14 @@ export function emptyRow(
 type Props = {
   rows: BatchRow[];
   setRows: React.Dispatch<React.SetStateAction<BatchRow[]>>;
-  defaultStore?: string;
 };
 
-export function BatchReviewTable({
-  rows,
-  setRows,
-  defaultStore = "",
-}: Props) {
-  const [storeItem, setStoreItem] = useState<ComboboxItem | null>(
-    defaultStore ? { id: "", label: defaultStore, hint: null } : null,
-  );
-  // mapOpen: null = closed, "default" = picking default store, number = picking for that row index
-  const [mapOpen, setMapOpen] = useState<"default" | number | null>(null);
+export function BatchReviewTable({ rows, setRows }: Props) {
+  // mapOpen: null = closed, number = picking store for that row index
+  const [mapOpen, setMapOpen] = useState<number | null>(null);
   const [rowStoreItems, setRowStoreItems] = useState<
     Record<number, ComboboxItem | null>
   >({});
-  const storeOverride = storeItem?.label ?? "";
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<BatchSubmitResult | null>(null);
 
@@ -115,19 +106,12 @@ export function BatchReviewTable({
 
   const addRow = () => setRows((rs) => [...rs, emptyRow("manual")]);
 
-  const applyDefaultStore = () => {
-    if (!storeOverride.trim()) return;
-    setRows((rs) =>
-      rs.map((r) => ({ ...r, storeName: r.storeName || storeOverride })),
-    );
-  };
-
   const onSubmit = () => {
     setResult(null);
     const payload = rows
       .map((r) => ({
         productName: r.productName,
-        storeName: r.storeName || storeOverride,
+        storeName: r.storeName,
         brand: r.brand,
         originCountry: r.originCountry,
         packType: r.packType,
@@ -163,46 +147,11 @@ export function BatchReviewTable({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <div className="flex items-end gap-2">
-          <div className="min-w-0 flex-1">
-            <Combobox
-              label="Default store (applied to blank rows)"
-              placeholder="e.g. NSK Pandan Indah"
-              value={storeItem}
-              onChange={setStoreItem}
-              search={storeSearch}
-              onCreate={storeCreate}
-            />
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="shrink-0 whitespace-nowrap text-xs"
-            onClick={applyDefaultStore}
-          >
-            Apply to all
-          </Button>
-        </div>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => setMapOpen("default")}
-            className="shrink-0 inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-muted transition-colors"
-          >
-            <MapIcon /> Pick on map
-          </button>
-        </div>
-      </div>
-
       <StoreMapPicker
         open={mapOpen !== null}
         onClose={() => setMapOpen(null)}
         onPick={(picked) => {
-          if (mapOpen === "default") {
-            setStoreItem(picked);
-          } else if (typeof mapOpen === "number") {
+          if (typeof mapOpen === "number") {
             setRowStoreItem(mapOpen, picked);
           }
           setMapOpen(null);
@@ -253,7 +202,7 @@ export function BatchReviewTable({
                 onPickOnMap={() => setMapOpen(i)}
                 search={storeSearch}
                 onCreate={storeCreate}
-                placeholder={storeOverride || "store name"}
+                placeholder="store name"
               />
               <RowInput
                 label="Price (MYR)"

@@ -1,19 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Combobox, type ComboboxItem } from "@/components/Combobox";
-import { StoreMapPicker } from "@/components/map/StoreMapPicker";
-import { cn } from "@/lib/utils/cn";
-import {
-  searchStores,
-  type StoreRow,
-} from "@/lib/queries/catalog";
-import {
-  createStoreAction,
-} from "@/app/add/price/actions";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils/cn";
 import { uploadEvidenceFiles } from "@/lib/storage/uploadEvidence";
 import { ocrImage } from "@/lib/ocr/tesseract";
 import { extractPdfText } from "@/lib/ocr/parsePdf";
@@ -23,7 +13,6 @@ import { smartParseImage } from "@/lib/ocr/smartParse";
 import { groqParseImage } from "@/lib/ocr/groqParse";
 import { mergeProviderRows } from "@/lib/ocr/mergeRows";
 import { compressImage } from "@/lib/utils/compressImage";
-import { getCurrentPosition, findNearestStore } from "@/lib/utils/nearestStore";
 import {
   BatchReviewTable,
   emptyRow,
@@ -39,12 +28,8 @@ export function BatchClient() {
   const [stage, setStage] = useState<Stage>("idle");
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [storeItem, setStoreItem] = useState<ComboboxItem | null>(null);
-  const [mapOpen, setMapOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const autoTriggered = useRef(false);
-
-  const defaultStore = storeItem?.label ?? "";
 
   // Auto-open camera/gallery when navigated from FAB menu
   const source = searchParams.get("source");
@@ -85,44 +70,6 @@ export function BatchClient() {
       }, 300);
     }
   }, [source]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-detect GPS location and select nearest store
-  const locationDetected = useRef(false);
-  useEffect(() => {
-    if (locationDetected.current) return;
-    if (source !== "camera" && source !== "gallery") return;
-    locationDetected.current = true;
-
-    (async () => {
-      const pos = await getCurrentPosition();
-      if (!pos) return;
-      const nearest = await findNearestStore(pos);
-      if (nearest) {
-        setStoreItem({
-          id: nearest.id,
-          label: nearest.name,
-          hint: nearest.address ?? nearest.chain ?? null,
-        });
-      }
-    })();
-  }, [source]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const storeSearch = useCallback(
-    async (q: string): Promise<ComboboxItem[]> => {
-      const rows = await searchStores(q);
-      return rows.map((r) => ({
-        id: r.id,
-        label: r.name,
-        hint: storeHint(r),
-      }));
-    },
-    [],
-  );
-
-  const storeCreate = useCallback(
-    (name: string) => createStoreAction(name),
-    [],
-  );
 
   const appendRows = (next: BatchRow[]) => {
     const today = todayLocalDate();
@@ -172,15 +119,15 @@ export function BatchClient() {
           (async () => {
             const text = await ocrImage(f);
             return parsePriceLines(text).map<BatchRow>((p) => ({
-              ...emptyRow("image", defaultStore),
+              ...emptyRow("image", ""),
               productName: p.productName,
               priceMyr: String(p.priceMyr),
               packSizeG: p.packSizeG ? String(p.packSizeG) : "",
               notes: p.raw,
             }));
           })(),
-          smartParseImage(f, defaultStore),
-          groqParseImage(f, defaultStore),
+          smartParseImage(f, ""),
+          groqParseImage(f, ""),
           uploadSource(f),
         ]);
 
@@ -230,7 +177,7 @@ export function BatchClient() {
         const parsed = parsePriceLines(text);
         totalParsed += parsed.length;
         const newRows: BatchRow[] = parsed.map((p) => ({
-          ...emptyRow("file", defaultStore),
+          ...emptyRow("file", ""),
           productName: p.productName,
           priceMyr: String(p.priceMyr),
           packSizeG: p.packSizeG ? String(p.packSizeG) : "",
@@ -267,7 +214,7 @@ export function BatchClient() {
           uploadRes.status === "fulfilled" ? uploadRes.value : null;
         const stamped = parsed.map((r) => ({
           ...r,
-          storeName: r.storeName || defaultStore,
+          storeName: r.storeName,
         }));
         appendRows(stamp(stamped, sourcePath));
       }
@@ -283,46 +230,6 @@ export function BatchClient() {
 
   return (
     <div className="space-y-5">
-      <div className="space-y-2">
-        <Combobox
-          label="Default store for this batch"
-          placeholder="e.g. NSK Pandan Indah"
-          value={storeItem}
-          onChange={setStoreItem}
-          search={storeSearch}
-          onCreate={storeCreate}
-        />
-        <div className="flex items-center justify-between gap-2 text-xs">
-          {storeItem ? (
-            <Link
-              href={`/stores/${storeItem.id}`}
-              className="inline-flex items-center gap-1 text-accent hover:underline"
-            >
-              <PinIcon /> Edit store / set location
-            </Link>
-          ) : (
-            <span />
-          )}
-          <button
-            type="button"
-            onClick={() => setMapOpen(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-foreground hover:bg-muted transition-colors"
-          >
-            <MapIcon /> Pick on map
-          </button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Auto-applied to rows that don&rsquo;t have a store. You can override
-          per-row.
-        </p>
-      </div>
-
-      <StoreMapPicker
-        open={mapOpen}
-        onClose={() => setMapOpen(false)}
-        onPick={(picked) => setStoreItem(picked)}
-      />
-
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <UploadButton
           icon={
@@ -381,11 +288,7 @@ export function BatchClient() {
       )}
 
       {rows.length > 0 ? (
-        <BatchReviewTable
-          rows={rows}
-          setRows={setRows}
-          defaultStore={defaultStore}
-        />
+        <BatchReviewTable rows={rows} setRows={setRows} />
       ) : (
         <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
           Upload one or more files above. Detected rows will appear here for
@@ -407,52 +310,6 @@ type UploadProps = {
   inputRef?: React.RefObject<HTMLInputElement | null>;
   capture?: "user" | "environment";
 };
-
-function storeHint(r: StoreRow): string | null {
-  const bits: string[] = [];
-  if (r.parent_name) bits.push(r.parent_name);
-  if (r.unit) bits.push(r.unit);
-  if (bits.length > 0) return bits.join(" · ");
-  if (r.chain) return r.chain;
-  return r.address;
-}
-
-function PinIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-3 w-3"
-      aria-hidden
-    >
-      <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
-
-function MapIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-3.5 w-3.5"
-      aria-hidden
-    >
-      <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6" />
-      <line x1="8" y1="3" x2="8" y2="18" />
-      <line x1="16" y1="6" x2="16" y2="21" />
-    </svg>
-  );
-}
 
 function UploadButton({
   icon,
